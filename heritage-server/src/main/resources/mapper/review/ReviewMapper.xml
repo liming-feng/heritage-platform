@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.review.mapper.ReviewMapper">
+
+    <!--
+      匠人端评价的「归属」条件。
+      评价表用 type + target_id 统一存商品评价与课程评价，因此归属要按 type 分流：
+        type=1 → 看 goods.craftsman_id
+        type=2 → 看 course.craftsman_id
+      抽成 sql 片段是为了让列表与统计用上完全相同的归属口径 ——
+      否则很容易出现「统计说 42 条、列表只翻得到 40 条」这种对不上的情况。
+    -->
+    <sql id="craftsmanOwnership">
+        ((r.type = 1 AND g.craftsman_id = #{craftsmanId})
+        OR (r.type = 2 AND c.craftsman_id = #{craftsmanId}))
+    </sql>
+
+    <!-- 业务表联表：顺带带出评价对象的名称与封面，省掉前端逐条回查 -->
+    <sql id="craftsmanReviewJoins">
+        FROM review r
+        LEFT JOIN goods  g ON r.type = 1 AND g.id = r.target_id AND g.deleted = 0
+        LEFT JOIN course c ON r.type = 2 AND c.id = r.target_id AND c.deleted = 0
+    </sql>
+
+    <!--
+      「带图」的判定：images 存的是 JSON 数组字符串，空值有三种写法
+      （NULL / 空串 / '[]'），三种都要当成「没有图」，
+      否则「只看带图」会把没配图的评价也混进来。
+    -->
+    <sql id="hasImage">
+        (r.images IS NOT NULL AND r.images &lt;&gt; '' AND r.images &lt;&gt; '[]')
+    </sql>
+
+    <sql id="hasReply">
+        (r.reply IS NOT NULL AND r.reply &lt;&gt; '')
+    </sql>
+
+    <select id="selectCraftsmanReviewPage" resultType="com.lmf.heritage.module.review.vo.CraftsmanReviewVO">
+        SELECT
+        r.id,
+        r.type,
+        r.rating,
+        r.content,
+        r.reply,
+        r.target_id      AS targetId,
+        r.images         AS imagesJson,
+        r.reply_time     AS replyTime,
+        r.like_count     AS likeCount,
+        r.user_id        AS userId,
+        r.create_time    AS createTime,
+        u.nickname,
+        u.avatar,
+        COALESCE(g.name, c.title) AS targetName,
+        COALESCE(g.cover, c.cover) AS targetCover
+        <include refid="craftsmanReviewJoins"/>
+        LEFT JOIN `user` u ON u.id = r.user_id
+        <where>
+            r.deleted = 0
+            AND <include refid="craftsmanOwnership"/>
+            <if test="q.type != null">
+                AND r.type = #{q.type}
+            </if>
+            <if test="q.targetId != null">
+                AND r.target_id = #{q.targetId}
+            </if>
+            <if test="q.rating != null">
+                AND r.rating = #{q.rating}
+            </if>
+            <if test="q.ratingLevel == 'good'">
+                AND r.rating &gt;= 4
+            </if>
+            <if test="q.ratingLevel == 'mid'">
+                AND r.rating = 3
+            </if>
+            <if test="q.ratingLevel == 'bad'">
+                AND r.rating &lt;= 2
+            </if>
+            <if test="q.hasImage != null and q.hasImage">
+                AND <include refid="hasImage"/>
+            </if>
+            <if test="q.replied != null and q.replied">
+                AND <include refid="hasReply"/>
+            </if>
+            <if test="q.replied != null and !q.replied">
+                AND NOT <include refid="hasReply"/>
+            </if>
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (
+                r.content LIKE CONCAT('%', #{q.keyword}, '%')
+                OR u.nickname LIKE CONCAT('%', #{q.keyword}, '%')
+                OR g.name LIKE CONCAT('%', #{q.keyword}, '%')
+                OR c.title LIKE CONCAT('%', #{q.keyword}, '%')
+                )
+            </if>
+        </where>
+        <!-- 未回复的排在前面：评价管理本质是一份待办清单，先把欠着的处理掉 -->
+        ORDER BY (r.reply IS NULL OR r.reply = '') DESC, r.create_time DESC, r.id DESC
+    </select>
+
+    <!--
+      评价统计。SUM 在无匹配行时返回 NULL（COUNT 则返回 0），
+      所以每个 SUM 都用 IFNULL 收口，服务层就不必再处理一堆 null。
+      好评：4-5 星；中评：3 星；差评：1-2 星。
+    -->
+    <select id="selectCraftsmanStat" resultType="java.util.Map">
+        SELECT
+        COUNT(*) AS total,
+        IFNULL(ROUND(AVG(r.rating), 1), 0) AS avgRating,
+        IFNULL(SUM(CASE WHEN r.rating &gt;= 4 THEN 1 ELSE 0 END), 0) AS goodCount,
+        IFNULL(SUM(CASE WHEN r.rating = 3 THEN 1 ELSE 0 END), 0) AS midCount,
+        IFNULL(SUM(CASE WHEN r.rating &lt;= 2 THEN 1 ELSE 0 END), 0) AS badCount,
+        IFNULL(SUM(CASE WHEN <include refid="hasImage"/> THEN 1 ELSE 0 END), 0) AS imageCount,
+        IFNULL(SUM(CASE WHEN <include refid="hasReply"/> THEN 1 ELSE 0 END), 0) AS repliedCount,
+        IFNULL(SUM(CASE WHEN r.rating = 5 THEN 1 ELSE 0 END), 0) AS star5,
+        IFNULL(SUM(CASE WHEN r.rating = 4 THEN 1 ELSE 0 END), 0) AS star4,
+        IFNULL(SUM(CASE WHEN r.rating = 3 THEN 1 ELSE 0 END), 0) AS star3,
+        IFNULL(SUM(CASE WHEN r.rating = 2 THEN 1 ELSE 0 END), 0) AS star2,
+        IFNULL(SUM(CASE WHEN r.rating = 1 THEN 1 ELSE 0 END), 0) AS star1
+        <include refid="craftsmanReviewJoins"/>
+        WHERE r.deleted = 0
+        AND <include refid="craftsmanOwnership"/>
+    </select>
+
+</mapper>

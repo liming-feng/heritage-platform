@@ -1,0 +1,5992 @@
+{
+  "info": {
+    "name": "非遗手工艺品展示与预约体验平台 · 接口集合",
+    "_postman_id": "b7e2c1f0-heritage-p10",
+    "description": "由控制器源码自动生成（tools/_gen_postman.py）。导入后先在环境变量里配置 base_url（默认 http://127.0.0.1:8080/api）与 token（登录后从 data.accessToken 复制；管理端/匠人端接口请用对应角色账号）。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8080/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "refresh_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 认证与账号",
+      "item": [
+        {
+          "name": "AdminUser",
+          "item": [
+            {
+              "name": "用户列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/user/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "user",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/user/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "用户详情",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/user/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "user",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /admin/user/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "启用 / 禁用账号",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/user/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "user",
+                    "status"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/user/status`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量启用 / 禁用账号",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/user/batch/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "user",
+                    "batch",
+                    "status"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/user/batch/status`"
+              },
+              "response": []
+            },
+            {
+              "name": "注册量统计",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/user/stat/register",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "user",
+                    "stat",
+                    "register"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/user/stat/register`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出用户 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/user/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "user",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/user/export`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalAuth",
+          "item": [
+            {
+              "name": "注册",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/auth/register",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "auth",
+                    "register"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/auth/register`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"newuser01\",\n  \"password\": \"123456\",\n  \"nickname\": \"新用户\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "登录",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/auth/login",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "auth",
+                    "login"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/auth/login`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"user01\",\n  \"password\": \"123456\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "刷新令牌",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/auth/refresh",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "auth",
+                    "refresh"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/auth/refresh`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "退出登录",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/auth/logout",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "auth",
+                    "logout"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/auth/logout`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalHistory",
+          "item": [
+            {
+              "name": "上报浏览历史",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/history/upload",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "history",
+                    "upload"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/history/upload`"
+              },
+              "response": []
+            },
+            {
+              "name": "浏览历史列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/history/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "history",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/history/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "删除一条浏览历史",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/history/delete",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "history",
+                    "delete"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`DELETE /portal/history/delete`"
+              },
+              "response": []
+            },
+            {
+              "name": "清空浏览历史",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/history/clear",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "history",
+                    "clear"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`DELETE /portal/history/clear`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalUser",
+          "item": [
+            {
+              "name": "当前登录用户信息",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/user/info",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "user",
+                    "info"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/user/info`"
+              },
+              "response": []
+            },
+            {
+              "name": "修改个人资料",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/user/info",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "user",
+                    "info"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`PUT /portal/user/info`"
+              },
+              "response": []
+            },
+            {
+              "name": "修改密码",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/user/password",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "user",
+                    "password"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`PUT /portal/user/password`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 门户首页",
+      "item": [
+        {
+          "name": "PortalHome",
+          "item": [
+            {
+              "name": "首页轮播",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/home/banners",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "home",
+                    "banners"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/home/banners`"
+              },
+              "response": []
+            },
+            {
+              "name": "分类导航",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/home/categories",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "home",
+                    "categories"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/home/categories`"
+              },
+              "response": []
+            },
+            {
+              "name": "热门商品",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/home/hotGoods",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "home",
+                    "hotGoods"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/home/hotGoods`"
+              },
+              "response": []
+            },
+            {
+              "name": "推荐匠人",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/home/craftsmen",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "home",
+                    "craftsmen"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/home/craftsmen`"
+              },
+              "response": []
+            },
+            {
+              "name": "体验活动预告",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/home/courses",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "home",
+                    "courses"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/home/courses`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 商品与分类",
+      "item": [
+        {
+          "name": "AdminCategory",
+          "item": [
+            {
+              "name": "分类列表（管理端）",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/category/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "category",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/category/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "新增 / 编辑分类",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/category/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "category",
+                    "save"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/category/save`"
+              },
+              "response": []
+            },
+            {
+              "name": "启用 / 停用分类",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/category/:id/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "category",
+                    ":id",
+                    "status"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /admin/category/{id}/status`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量调整排序与状态",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/category/batch-sort",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "category",
+                    "batch-sort"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/category/batch-sort`"
+              },
+              "response": []
+            },
+            {
+              "name": "删除分类",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/category/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "category",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`DELETE /admin/category/{id}`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "AdminGoods",
+          "item": [
+            {
+              "name": "全平台商品列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/goods/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "goods",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/goods/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "商品审核详情",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/goods/:id/audit-detail",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "goods",
+                    ":id",
+                    "audit-detail"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /admin/goods/{id}/audit-detail`"
+              },
+              "response": []
+            },
+            {
+              "name": "商品审核（通过并上架 / 驳回）",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/goods/audit",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "goods",
+                    "audit"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/goods/audit`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量审核",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/goods/audit/batch",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "goods",
+                    "audit",
+                    "batch"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/goods/audit/batch`"
+              },
+              "response": []
+            },
+            {
+              "name": "违规下架",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/goods/off-shelf",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "goods",
+                    "off-shelf"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/goods/off-shelf`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出商品 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/goods/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "goods",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/goods/export`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "CraftsmanGoods",
+          "item": [
+            {
+              "name": "我的商品",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/goods/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "goods",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/goods/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "商品详情（编辑回显）",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/goods/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "goods",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /craftsman/goods/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "发布 / 编辑商品",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/goods/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "goods",
+                    "save"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/goods/save`"
+              },
+              "response": []
+            },
+            {
+              "name": "上架 / 下架",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/goods/:id/shelf",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "goods",
+                    ":id",
+                    "shelf"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /craftsman/goods/{id}/shelf`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量上架 / 下架",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/goods/shelf/batch",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "goods",
+                    "shelf",
+                    "batch"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/goods/shelf/batch`"
+              },
+              "response": []
+            },
+            {
+              "name": "库存预警列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/goods/stock-warn",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "goods",
+                    "stock-warn"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/goods/stock-warn`"
+              },
+              "response": []
+            },
+            {
+              "name": "浏览量",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/goods/:id/views",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "goods",
+                    ":id",
+                    "views"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /craftsman/goods/{id}/views`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalCategory",
+          "item": [
+            {
+              "name": "分类列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/category/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "category",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/category/list`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalGoods",
+          "item": [
+            {
+              "name": "商品列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/goods/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "goods",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/goods/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "商品搜索",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/goods/search",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "goods",
+                    "search"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/goods/search`"
+              },
+              "response": []
+            },
+            {
+              "name": "商品详情",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/goods/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "goods",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/goods/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "商品浏览历史",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/goods/history",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "goods",
+                    "history"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/goods/history`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 订单交易",
+      "item": [
+        {
+          "name": "CraftsmanOrder",
+          "item": [
+            {
+              "name": "订单列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/order/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "order",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/order/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "发货",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/order/deliver",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "order",
+                    "deliver"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/order/deliver`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量发货",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/order/deliver/batch",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "order",
+                    "deliver",
+                    "batch"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/order/deliver/batch`"
+              },
+              "response": []
+            },
+            {
+              "name": "修改订单备注",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/order/remark",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "order",
+                    "remark"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/order/remark`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出订单 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/order/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "order",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/order/export`"
+              },
+              "response": []
+            },
+            {
+              "name": "审核退款",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/order/refund/audit",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "order",
+                    "refund",
+                    "audit"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/order/refund/audit`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalAddress",
+          "item": [
+            {
+              "name": "我的地址列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/address/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "address",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/address/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "地址详情",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/address/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "address",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/address/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "默认地址",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/address/default",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "address",
+                    "default"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/address/default`"
+              },
+              "response": []
+            },
+            {
+              "name": "新增 / 修改地址",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/address/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "address",
+                    "save"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/address/save`"
+              },
+              "response": []
+            },
+            {
+              "name": "设为默认地址",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/address/default/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "address",
+                    "default",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`PUT /portal/address/default/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "删除地址",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/address/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "address",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`DELETE /portal/address/{id}`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalCart",
+          "item": [
+            {
+              "name": "购物车列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/cart/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "cart",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/cart/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "加入购物车",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/cart/add",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "cart",
+                    "add"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/cart/add`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"goodsId\": 1,\n  \"specId\": null,\n  \"quantity\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "修改数量",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/cart/update",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "cart",
+                    "update"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`PUT /portal/cart/update`"
+              },
+              "response": []
+            },
+            {
+              "name": "勾选 / 取消勾选",
+              "request": {
+                "method": "PUT",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/cart/check",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "cart",
+                    "check"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`PUT /portal/cart/check`"
+              },
+              "response": []
+            },
+            {
+              "name": "删除单项",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/cart/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "cart",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`DELETE /portal/cart/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量删除",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/cart/batch-delete",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "cart",
+                    "batch-delete"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/cart/batch-delete`"
+              },
+              "response": []
+            },
+            {
+              "name": "清空购物车",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/cart/clear",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "cart",
+                    "clear"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`DELETE /portal/cart/clear`"
+              },
+              "response": []
+            },
+            {
+              "name": "购物车数量",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/cart/count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "cart",
+                    "count"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/cart/count`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalOrder",
+          "item": [
+            {
+              "name": "结算预览",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/preview",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "preview"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/order/preview`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"addressId\": 1,\n  \"userCouponId\": null,\n  \"items\": [\n    {\n      \"goodsId\": 1,\n      \"specId\": null,\n      \"quantity\": 1\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "创建订单",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/create",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "create"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/order/create`"
+              },
+              "response": []
+            },
+            {
+              "name": "我的订单",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/order/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "各状态订单数量",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "count"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/order/count`"
+              },
+              "response": []
+            },
+            {
+              "name": "订单详情",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/detail/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "detail",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/order/detail/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "按订单号查详情",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/detail-no/:orderNo",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "detail-no",
+                    ":orderNo"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "orderNo",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/order/detail-no/{orderNo}`"
+              },
+              "response": []
+            },
+            {
+              "name": "模拟支付",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/pay/:orderNo",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "pay",
+                    ":orderNo"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "orderNo",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/order/pay/{orderNo}`"
+              },
+              "response": []
+            },
+            {
+              "name": "取消订单",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/cancel/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "cancel",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/order/cancel/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "确认收货",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/confirm/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "confirm",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/order/confirm/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "申请退款",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/order/refund/apply",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "order",
+                    "refund",
+                    "apply"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/order/refund/apply`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 课程",
+      "item": [
+        {
+          "name": "AdminCourse",
+          "item": [
+            {
+              "name": "全平台课程列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/course/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "course",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/course/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "课程审核详情",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/course/:id/audit-detail",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "course",
+                    ":id",
+                    "audit-detail"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /admin/course/{id}/audit-detail`"
+              },
+              "response": []
+            },
+            {
+              "name": "课程审核（单件 / 批量共用）",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/course/audit",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "course",
+                    "audit"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/course/audit`"
+              },
+              "response": []
+            },
+            {
+              "name": "违规下架（批量）",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/course/off-shelf",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "course",
+                    "off-shelf"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/course/off-shelf`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出课程 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/course/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "course",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/course/export`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "CraftsmanCourse",
+          "item": [
+            {
+              "name": "我的课程",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/course/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "course",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/course/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "新增/编辑课程",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/course/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "course",
+                    "save"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/course/save`"
+              },
+              "response": []
+            },
+            {
+              "name": "删除课程",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/course/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "course",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`DELETE /craftsman/course/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "日历排期视图",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/course/calendar",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "course",
+                    "calendar"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/course/calendar`"
+              },
+              "response": []
+            },
+            {
+              "name": "开放 / 关闭预约",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/course/:id/booking",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "course",
+                    ":id",
+                    "booking"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /craftsman/course/{id}/booking`"
+              },
+              "response": []
+            },
+            {
+              "name": "提前结束课程",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/course/:id/finish",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "course",
+                    ":id",
+                    "finish"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /craftsman/course/{id}/finish`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalCourse",
+          "item": [
+            {
+              "name": "课程列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/course/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "course",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/course/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "课程详情",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/course/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "course",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/course/{id}`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 匠人",
+      "item": [
+        {
+          "name": "AdminCraftsman",
+          "item": [
+            {
+              "name": "匠人列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/craftsman/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "craftsman",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/craftsman/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "资质审核详情",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/craftsman/:id/audit-detail",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "craftsman",
+                    ":id",
+                    "audit-detail"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /admin/craftsman/{id}/audit-detail`"
+              },
+              "response": []
+            },
+            {
+              "name": "资质审核（通过 / 驳回）",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/craftsman/audit",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "craftsman",
+                    "audit"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/craftsman/audit`"
+              },
+              "response": []
+            },
+            {
+              "name": "技艺门类选项",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/craftsman/craft-types",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "craftsman",
+                    "craft-types"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/craftsman/craft-types`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出匠人 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/craftsman/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "craftsman",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/craftsman/export`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalCraftsman",
+          "item": [
+            {
+              "name": "匠人列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/craftsman/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "craftsman",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/craftsman/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "匠人主页",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/craftsman/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "craftsman",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/craftsman/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "关注匠人",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/craftsman/follow/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "craftsman",
+                    "follow",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/craftsman/follow/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "取消关注匠人",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/craftsman/follow/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "craftsman",
+                    "follow",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`DELETE /portal/craftsman/follow/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "我的关注列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/craftsman/follow/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "craftsman",
+                    "follow",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/craftsman/follow/list`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 预约（题眼）",
+      "item": [
+        {
+          "name": "AdminBookingConfig",
+          "item": [
+            {
+              "name": "配置列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking-config/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking-config",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/booking-config/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "修改配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking-config/update",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking-config",
+                    "update"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/booking-config/update`"
+              },
+              "response": []
+            },
+            {
+              "name": "恢复默认配置",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking-config/reset",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking-config",
+                    "reset"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/booking-config/reset`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "AdminBooking",
+          "item": [
+            {
+              "name": "全平台预约列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/booking/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "预约详情",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /admin/booking/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "预约流转轨迹",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/:id/logs",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    ":id",
+                    "logs"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /admin/booking/{id}/logs`"
+              },
+              "response": []
+            },
+            {
+              "name": "强制取消预约",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/cancel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "cancel"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/booking/cancel`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bookingId\": 1,\n  \"reason\": \"场地临时检修\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "导出预约 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/booking/export`"
+              },
+              "response": []
+            },
+            {
+              "name": "手动触发：超时未审自动拒绝",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/task/auto-reject-timeout",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "task",
+                    "auto-reject-timeout"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/booking/task/auto-reject-timeout`"
+              },
+              "response": []
+            },
+            {
+              "name": "手动触发：课程状态推进",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/task/auto-finish-courses",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "task",
+                    "auto-finish-courses"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/booking/task/auto-finish-courses`"
+              },
+              "response": []
+            },
+            {
+              "name": "手动触发：开课提醒",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/task/course-reminders",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "task",
+                    "course-reminders"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/booking/task/course-reminders`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "AdminBookingStat",
+          "item": [
+            {
+              "name": "① 时段分布",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/stat/time-slot",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "stat",
+                    "time-slot"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/booking/stat/time-slot`"
+              },
+              "response": []
+            },
+            {
+              "name": "② 爽约率",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/stat/absent",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "stat",
+                    "absent"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/booking/stat/absent`"
+              },
+              "response": []
+            },
+            {
+              "name": "③ 审核转化漏斗",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/stat/funnel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "stat",
+                    "funnel"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/booking/stat/funnel`"
+              },
+              "response": []
+            },
+            {
+              "name": "④ 课程热度榜",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/stat/course-heat",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "stat",
+                    "course-heat"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/booking/stat/course-heat`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑤ 近 N 天预约趋势",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/booking/stat/trend",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "booking",
+                    "stat",
+                    "trend"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/booking/stat/trend`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "CraftsmanBooking",
+          "item": [
+            {
+              "name": "预约列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/booking/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "booking",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/booking/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "各状态预约数",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/booking/count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "booking",
+                    "count"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/booking/count`"
+              },
+              "response": []
+            },
+            {
+              "name": "审核预约",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/booking/audit",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "booking",
+                    "audit"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/booking/audit`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bookingId\": 1,\n  \"approve\": true,\n  \"reason\": \"\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "核销签到",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/booking/checkin",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "booking",
+                    "checkin"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/booking/checkin`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"code\": \"CK20260918001\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "匠人取消预约",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/booking/cancel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "booking",
+                    "cancel"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/booking/cancel`"
+              },
+              "response": []
+            },
+            {
+              "name": "报名名单",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/booking/roster",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "booking",
+                    "roster"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/booking/roster`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出报名名单",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/booking/roster/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "booking",
+                    "roster",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/booking/roster/export`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalBooking",
+          "item": [
+            {
+              "name": "提交预约",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/booking/submit",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "booking",
+                    "submit"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/booking/submit`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"courseId\": 1,\n  \"contactName\": \"张三\",\n  \"contactPhone\": \"13800138000\",\n  \"quota\": 1,\n  \"remark\": \"无\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "我的预约",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/booking/mine",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "booking",
+                    "mine"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/booking/mine`"
+              },
+              "response": []
+            },
+            {
+              "name": "我的各状态预约数",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/booking/count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "booking",
+                    "count"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/booking/count`"
+              },
+              "response": []
+            },
+            {
+              "name": "预约详情",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/booking/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "booking",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/booking/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "取核销码",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/booking/:id/checkin-code",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "booking",
+                    ":id",
+                    "checkin-code"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/booking/{id}/checkin-code`"
+              },
+              "response": []
+            },
+            {
+              "name": "取消预约",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/portal/booking/cancel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "booking",
+                    "cancel"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/booking/cancel`",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bookingId\": 1,\n  \"reason\": \"临时有事\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 优惠券",
+      "item": [
+        {
+          "name": "AdminCoupon",
+          "item": [
+            {
+              "name": "券种列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/coupon/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "券种详情",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/detail",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "detail"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/coupon/detail`"
+              },
+              "response": []
+            },
+            {
+              "name": "创建 / 编辑券种",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "save"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/coupon/save`"
+              },
+              "response": []
+            },
+            {
+              "name": "启用 / 停用券种",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "status"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/coupon/status`"
+              },
+              "response": []
+            },
+            {
+              "name": "优惠券运营总览",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/stat",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "stat"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/coupon/stat`"
+              },
+              "response": []
+            },
+            {
+              "name": "领取记录",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/receive-list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "receive-list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/coupon/receive-list`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出券种 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/coupon/export`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出领取记录 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/receive-export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "receive-export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/coupon/receive-export`"
+              },
+              "response": []
+            },
+            {
+              "name": "手动触发：标记过期券",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/task/mark-expired",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "task",
+                    "mark-expired"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/coupon/task/mark-expired`"
+              },
+              "response": []
+            },
+            {
+              "name": "手动触发：优惠券过期提醒",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/coupon/task/expire-reminders",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "coupon",
+                    "task",
+                    "expire-reminders"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/coupon/task/expire-reminders`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalCoupon",
+          "item": [
+            {
+              "name": "领券中心",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/coupon/center",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "coupon",
+                    "center"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/coupon/center`"
+              },
+              "response": []
+            },
+            {
+              "name": "领取优惠券",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/coupon/receive/:couponId",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "coupon",
+                    "receive",
+                    ":couponId"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "couponId",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/coupon/receive/{couponId}`"
+              },
+              "response": []
+            },
+            {
+              "name": "我的优惠券",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/coupon/mine",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "coupon",
+                    "mine"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/coupon/mine`"
+              },
+              "response": []
+            },
+            {
+              "name": "我的优惠券数量统计",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/coupon/mine/count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "coupon",
+                    "mine",
+                    "count"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/coupon/mine/count`"
+              },
+              "response": []
+            },
+            {
+              "name": "结算页可用券",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/coupon/available",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "coupon",
+                    "available"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/coupon/available`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "10 评价",
+      "item": [
+        {
+          "name": "CraftsmanReview",
+          "item": [
+            {
+              "name": "评价列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/review/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "review",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/review/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "回复 / 修改回复",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/review/reply",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "review",
+                    "reply"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /craftsman/review/reply`"
+              },
+              "response": []
+            },
+            {
+              "name": "评价统计",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/review/stat",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "review",
+                    "stat"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/review/stat`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalReview",
+          "item": [
+            {
+              "name": "评价列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/review/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "review",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/review/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "发表商品评价",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/review/publish",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "review",
+                    "publish"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/review/publish`"
+              },
+              "response": []
+            },
+            {
+              "name": "发表课程评价（P5）",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/review/publish-course",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "review",
+                    "publish-course"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/review/publish-course`"
+              },
+              "response": []
+            },
+            {
+              "name": "有用点赞",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/review/like/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "review",
+                    "like",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/review/like/{id}`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "11 收藏与历史",
+      "item": [
+        {
+          "name": "PortalFavorite",
+          "item": [
+            {
+              "name": "收藏",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/favorite/add",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "favorite",
+                    "add"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/favorite/add`"
+              },
+              "response": []
+            },
+            {
+              "name": "取消收藏",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/favorite/remove",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "favorite",
+                    "remove"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/favorite/remove`"
+              },
+              "response": []
+            },
+            {
+              "name": "是否已收藏",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/favorite/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "favorite",
+                    "status"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/favorite/status`"
+              },
+              "response": []
+            },
+            {
+              "name": "我的收藏",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/favorite/mine",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "favorite",
+                    "mine"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/favorite/mine`"
+              },
+              "response": []
+            },
+            {
+              "name": "我的收藏数量统计",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/favorite/mine/count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "favorite",
+                    "mine",
+                    "count"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/favorite/mine/count`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "12 消息",
+      "item": [
+        {
+          "name": "PortalMessage",
+          "item": [
+            {
+              "name": "消息列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/message/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "message",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/message/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "未读消息数",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/message/unread-count",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "message",
+                    "unread-count"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/message/unread-count`"
+              },
+              "response": []
+            },
+            {
+              "name": "分类统计",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/message/type-stat",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "message",
+                    "type-stat"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/message/type-stat`"
+              },
+              "response": []
+            },
+            {
+              "name": "标记单条已读",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/message/read/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "message",
+                    "read",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/message/read/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "全部标记已读",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/message/read-all",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "message",
+                    "read-all"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/message/read-all`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13 内容运营",
+      "item": [
+        {
+          "name": "AdminArticle",
+          "item": [
+            {
+              "name": "资讯列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/article/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "article",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/article/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "资讯详情",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/article/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "article",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /admin/article/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "新增 / 编辑资讯",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/article/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "article",
+                    "save"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/article/save`"
+              },
+              "response": []
+            },
+            {
+              "name": "发布 / 下架单篇",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/article/:id/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "article",
+                    ":id",
+                    "status"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /admin/article/{id}/status`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量发布 / 下架",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/article/batch-status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "article",
+                    "batch-status"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/article/batch-status`"
+              },
+              "response": []
+            },
+            {
+              "name": "置顶 / 取消置顶",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/article/:id/top",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "article",
+                    ":id",
+                    "top"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /admin/article/{id}/top`"
+              },
+              "response": []
+            },
+            {
+              "name": "删除资讯",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/article/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "article",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`DELETE /admin/article/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出资讯 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/article/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "article",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/article/export`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "AdminBanner",
+          "item": [
+            {
+              "name": "轮播图列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/banner/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "banner",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/banner/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "轮播图详情",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/banner/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "banner",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /admin/banner/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "新增 / 编辑轮播图",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/banner/save",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "banner",
+                    "save"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/banner/save`"
+              },
+              "response": []
+            },
+            {
+              "name": "启用 / 停用轮播图",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/banner/:id/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "banner",
+                    ":id",
+                    "status"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /admin/banner/{id}/status`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量调整排序与启停",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/banner/batch-sort",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "banner",
+                    "batch-sort"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/banner/batch-sort`"
+              },
+              "response": []
+            },
+            {
+              "name": "删除轮播图",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/banner/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "banner",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`DELETE /admin/banner/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出轮播图 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/banner/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "banner",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/banner/export`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalArticleComment",
+          "item": [
+            {
+              "name": "评论列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/article/comment/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "article",
+                    "comment",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/article/comment/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "发表评论 / 回复",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/article/comment/publish",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "article",
+                    "comment",
+                    "publish"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/article/comment/publish`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalArticle",
+          "item": [
+            {
+              "name": "资讯列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/article/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "article",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/article/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "热门资讯",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/article/hot",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "article",
+                    "hot"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/article/hot`"
+              },
+              "response": []
+            },
+            {
+              "name": "资讯详情",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/article/:id",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "article",
+                    ":id"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`GET /portal/article/{id}`"
+              },
+              "response": []
+            },
+            {
+              "name": "点赞资讯",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/article/:id/like",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "article",
+                    ":id",
+                    "like"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/article/{id}/like`"
+              },
+              "response": []
+            },
+            {
+              "name": "取消点赞",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/article/:id/unlike",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "article",
+                    ":id",
+                    "unlike"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "key": "id",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "description": "`POST /portal/article/{id}/unlike`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalBanner",
+          "item": [
+            {
+              "name": "轮播图列表",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/banner/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "banner",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/banner/list`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "13 内容运营",
+      "item": [
+        {
+          "name": "AdminFeedback",
+          "item": [
+            {
+              "name": "反馈列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/feedback/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "feedback",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/feedback/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "处理反馈",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/feedback/handle",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "feedback",
+                    "handle"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/feedback/handle`"
+              },
+              "response": []
+            },
+            {
+              "name": "批量处理反馈",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/feedback/batch-handle",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "feedback",
+                    "batch-handle"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /admin/feedback/batch-handle`"
+              },
+              "response": []
+            },
+            {
+              "name": "处理时效统计",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/feedback/stat",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "feedback",
+                    "stat"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/feedback/stat`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出反馈 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/feedback/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "feedback",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/feedback/export`"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "PortalFeedback",
+          "item": [
+            {
+              "name": "提交留言反馈",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/feedback/submit",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "feedback",
+                    "submit"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`POST /portal/feedback/submit`"
+              },
+              "response": []
+            },
+            {
+              "name": "我的反馈记录",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/portal/feedback/mine",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "portal",
+                    "feedback",
+                    "mine"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /portal/feedback/mine`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "14 管理端统计",
+      "item": [
+        {
+          "name": "AdminStat",
+          "item": [
+            {
+              "name": "数据总览大屏",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/overview",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "overview"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/overview`"
+              },
+              "response": []
+            },
+            {
+              "name": "① 非遗作品数量饼图",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/goods-count-pie",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "goods-count-pie"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/goods-count-pie`"
+              },
+              "response": []
+            },
+            {
+              "name": "② 课程热度柱状图",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/course-heat",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "course-heat"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/course-heat`"
+              },
+              "response": []
+            },
+            {
+              "name": "③ 用户访问与收藏量统计",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/visit-favorite",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "visit-favorite"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/visit-favorite`"
+              },
+              "response": []
+            },
+            {
+              "name": "④ 商品销量饼图",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/sales-quantity-pie",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "sales-quantity-pie"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/sales-quantity-pie`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑤ 平台交易金额折线图（按日）",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/sales-trend",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "sales-trend"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/sales-trend`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑤ 平台交易金额折线图（按月）",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/sales-trend-month",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "sales-trend-month"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/sales-trend-month`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑥ 订单状态统计",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/order-status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "order-status"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/order-status`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑦ 优惠券领取使用统计",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/coupon-use",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "coupon-use"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/coupon-use`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑧ 匠人销售排行榜",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/craftsman-rank",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "craftsman-rank"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/craftsman-rank`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑨ 用户增长趋势",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/user-growth",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "user-growth"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/user-growth`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑩ 商品分类销售占比",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/category-sales-share",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "category-sales-share"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/category-sales-share`"
+              },
+              "response": []
+            },
+            {
+              "name": "⑪ 月度活跃用户趋势",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/stat/monthly-active",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "stat",
+                    "monthly-active"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/stat/monthly-active`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "14 管理端统计",
+      "item": [
+        {
+          "name": "CraftsmanDashboard",
+          "item": [
+            {
+              "name": "概览卡片",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/dashboard/overview",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "dashboard",
+                    "overview"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/dashboard/overview`"
+              },
+              "response": []
+            },
+            {
+              "name": "近 N 天销售趋势",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/dashboard/sales-trend",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "dashboard",
+                    "sales-trend"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/dashboard/sales-trend`"
+              },
+              "response": []
+            },
+            {
+              "name": "商品销量 Top N",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/dashboard/goods-top",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "dashboard",
+                    "goods-top"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/dashboard/goods-top`"
+              },
+              "response": []
+            },
+            {
+              "name": "预约课程热度排行",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/dashboard/booking-rank",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "dashboard",
+                    "booking-rank"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/dashboard/booking-rank`"
+              },
+              "response": []
+            },
+            {
+              "name": "预约专属指标",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/dashboard/booking-stat",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "dashboard",
+                    "booking-stat"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/dashboard/booking-stat`"
+              },
+              "response": []
+            },
+            {
+              "name": "待办提醒",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/craftsman/dashboard/todo",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "craftsman",
+                    "dashboard",
+                    "todo"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /craftsman/dashboard/todo`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "15 管理端日志",
+      "item": [
+        {
+          "name": "AdminLog",
+          "item": [
+            {
+              "name": "操作日志列表",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/log/list",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "log",
+                    "list"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/log/list`"
+              },
+              "response": []
+            },
+            {
+              "name": "操作类型清单",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/log/types",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "log",
+                    "types"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/log/types`"
+              },
+              "response": []
+            },
+            {
+              "name": "导出操作日志 Excel",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/log/export",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "log",
+                    "export"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "description": "`GET /admin/log/export`"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

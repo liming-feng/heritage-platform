@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.favorite.mapper.FavoriteMapper">
+
+    <!--
+      我的收藏分页。
+
+      设计要点：
+      1) 三次 LEFT JOIN 各自带上 f.target_type = ? 条件，一趟扫描只会命中其中一张表，
+         不需要先查收藏再逐条回查目标表（N+1），也不需要 UNION 三条 SQL；
+      2) 用 CASE 把三张表的不同列名（name / title）统一到同一组字段上，
+         前端一个列表组件就能渲染商品、课程、资讯三种收藏；
+      3) targetAvailable 直接由 SQL 判断「目标是否还在售 / 已发布」，
+         让前端能把失效的收藏置灰而不是点进去 404。
+    -->
+    <select id="selectMyPage" resultType="com.lmf.heritage.module.favorite.vo.FavoriteVO">
+        SELECT
+            f.id,
+            f.target_type   AS targetType,
+            f.target_id     AS targetId,
+            f.create_time   AS createTime,
+            CASE f.target_type
+                WHEN 1 THEN g.name
+                WHEN 2 THEN c.title
+                WHEN 3 THEN a.title
+            END             AS title,
+            CASE f.target_type
+                WHEN 1 THEN g.subtitle
+                WHEN 2 THEN c.subtitle
+                WHEN 3 THEN a.summary
+            END             AS subtitle,
+            CASE f.target_type
+                WHEN 1 THEN g.cover
+                WHEN 2 THEN c.cover
+                WHEN 3 THEN a.cover
+            END             AS cover,
+            CASE f.target_type
+                WHEN 1 THEN g.price
+                WHEN 2 THEN c.price
+                ELSE NULL
+            END             AS price,
+            CASE
+                WHEN f.target_type = 1 THEN (g.id IS NOT NULL AND g.deleted = 0 AND g.status = 1)
+                WHEN f.target_type = 2 THEN (c.id IS NOT NULL AND c.deleted = 0 AND c.audit_status = 1)
+                WHEN f.target_type = 3 THEN (a.id IS NOT NULL AND a.deleted = 0 AND a.status = 1)
+                ELSE 0
+            END             AS targetAvailable
+        FROM favorite f
+        LEFT JOIN goods   g ON f.target_type = 1 AND g.id = f.target_id
+        LEFT JOIN course  c ON f.target_type = 2 AND c.id = f.target_id
+        LEFT JOIN article a ON f.target_type = 3 AND a.id = f.target_id
+        WHERE f.deleted = 0
+          AND f.user_id = #{userId}
+        <if test="targetType != null">
+            AND f.target_type = #{targetType}
+        </if>
+        ORDER BY f.id DESC
+    </select>
+
+</mapper>

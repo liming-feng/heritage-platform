@@ -1,0 +1,198 @@
+/* =====================================================================
+ *  全局样式 —— 非遗风格主题
+ *  主色取「朱砂红」，辅色取「宣纸米」与「墨色」
+ * ===================================================================== */
+
+:root {
+  --h-primary: #9c2c2c;
+  --h-primary-light: #b8443f;
+  --h-primary-dark: #7a1f20;
+  --h-gold: #c8a45c;
+  --h-ink: #2b2b2b;
+  --h-paper: #faf7f2;
+  --h-paper-dark: #f2ece2;
+  --h-border: #e6ded2;
+  --h-text-second: #7a7268;
+  --h-radius: 10px;
+  --h-shadow: 0 2px 12px rgba(43, 43, 43, 0.08);
+  --h-shadow-hover: 0 8px 24px rgba(156, 44, 44, 0.14);
+
+  /* 覆盖 Element Plus 主色 */
+  --el-color-primary: #9c2c2c;
+  --el-color-primary-light-3: #b8443f;
+  --el-color-primary-light-5: #c96a66;
+  --el-color-primary-light-7: #dc9b98;
+  --el-color-primary-light-8: #e8b8b6;
+  --el-color-primary-light-9: #f5e4e3;
+  --el-color-primary-dark-2: #7a1f20;
+  --el-border-radius-base: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--h-ink);
+  background-color: var(--h-paper);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+/* 页面容器 */
+.h-container {
+  width: 1200px;
+  max-width: 96%;
+  margin: 0 auto;
+}
+
+/* 卡片 */
+.h-card {
+  background: #fff;
+  border: 1px solid var(--h-border);
+  border-radius: var(--h-radius);
+  box-shadow: var(--h-shadow);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.h-card:hover {
+  box-shadow: var(--h-shadow-hover);
+}
+
+/* 区块标题 */
+.h-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--h-ink);
+  margin: 0 0 18px;
+}
+
+.h-section-title::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(180deg, var(--h-primary), var(--h-gold));
+  border-radius: 2px;
+}
+
+.h-section-title .more {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--h-text-second);
+  cursor: pointer;
+}
+
+.h-section-title .more:hover {
+  color: var(--h-primary);
+}
+
+/* 价格 */
+.h-price {
+  color: var(--h-primary);
+  font-weight: 700;
+}
+
+.h-price-origin {
+  color: #b9b0a5;
+  text-decoration: line-through;
+  font-size: 13px;
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+/* 两行截断 */
+.h-ellipsis-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.h-ellipsis-1 {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 空状态间距 */
+.h-empty {
+  padding: 48px 0;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d6ccc0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bfb3a4;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 表格页通用工具条 */
+.h-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.h-toolbar .spacer {
+  flex: 1;
+}
+
+.h-page {
+  padding: 20px;
+}
+
+.h-page-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.h-page-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.h-page-header .sub {
+  margin-left: 12px;
+  color: var(--h-text-second);
+  font-size: 13px;
+}

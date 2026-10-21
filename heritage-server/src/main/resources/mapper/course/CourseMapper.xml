@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.course.mapper.CourseMapper">
+
+    <!-- 统一的列清单：前台列表、课程详情、匠人端课程管理三处共用，避免字段漏改 -->
+    <sql id="voColumns">
+        c.id,
+        c.title,
+        c.subtitle,
+        c.cover,
+        c.price,
+        c.address,
+        c.start_time       AS startTime,
+        c.end_time         AS endTime,
+        c.booking_deadline AS bookingDeadline,
+        c.cancel_deadline  AS cancelDeadline,
+        c.total_quota      AS totalQuota,
+        c.remain_quota     AS remainQuota,
+        (c.total_quota - c.remain_quota) AS bookedQuota,
+        c.duration,
+        c.difficulty,
+        c.view_count       AS viewCount,
+        c.booking_count    AS bookingCount,
+        c.status,
+        c.craftsman_id     AS craftsmanId,
+        cr.real_name       AS craftsmanName,
+        cr.craft_type      AS craftType,
+        c.category_id      AS categoryId,
+        cat.name           AS categoryName
+    </sql>
+
+    <sql id="voJoins">
+        FROM course c
+        LEFT JOIN craftsman cr  ON cr.id = c.craftsman_id
+        LEFT JOIN category cat  ON cat.id = c.category_id
+    </sql>
+
+    <!--
+      前台课程列表分页（题眼：剩余名额 + 预约截止倒计时）
+      排序走 choose 白名单分支，不拼接前端传来的字符串，避免 ORDER BY 注入。
+    -->
+    <select id="selectCoursePage" resultType="com.lmf.heritage.module.course.vo.CourseListVO">
+        SELECT
+        <include refid="voColumns"/>
+        <include refid="voJoins"/>
+        WHERE c.deleted = 0 AND c.audit_status = 1
+        <if test="q.categoryId != null">
+            AND c.category_id = #{q.categoryId}
+        </if>
+        <if test="q.craftsmanId != null">
+            AND c.craftsman_id = #{q.craftsmanId}
+        </if>
+        <if test="q.status != null">
+            AND c.status = #{q.status}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (c.title LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR c.subtitle LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        <if test="q.onlyBookable != null and q.onlyBookable">
+            AND c.status = 0
+            AND c.remain_quota &gt; 0
+            AND (c.booking_deadline IS NULL OR c.booking_deadline &gt; NOW())
+        </if>
+        <choose>
+            <when test="q.sort == 'price_asc'">ORDER BY c.price ASC, c.id DESC</when>
+            <when test="q.sort == 'price_desc'">ORDER BY c.price DESC, c.id DESC</when>
+            <when test="q.sort == 'hot'">ORDER BY c.booking_count DESC, c.view_count DESC, c.id DESC</when>
+            <when test="q.sort == 'new'">ORDER BY c.start_time ASC, c.id DESC</when>
+            <otherwise>ORDER BY c.status ASC, c.start_time ASC, c.id DESC</otherwise>
+        </choose>
+    </select>
+
+    <!--
+      匠人端「我的课程」：只看自己的课程，且不受平台审核状态与课程状态限制
+      （草稿、待审核、已结束的课程本人也要能看到并管理）。
+    -->
+    <select id="selectMyCoursePage" resultType="com.lmf.heritage.module.course.vo.CourseListVO">
+        SELECT
+        <include refid="voColumns"/>
+        <include refid="voJoins"/>
+        WHERE c.deleted = 0 AND c.craftsman_id = #{craftsmanId}
+        <if test="q.status != null">
+            AND c.status = #{q.status}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (c.title LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR c.subtitle LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        ORDER BY c.status ASC, c.start_time DESC, c.id DESC
+    </select>
+
+    <!-- 课程详情（列清单与列表共用，保证字段一致） -->
+    <select id="selectCourseVoById" resultType="com.lmf.heritage.module.course.vo.CourseListVO">
+        SELECT
+        <include refid="voColumns"/>
+        <include refid="voJoins"/>
+        WHERE c.deleted = 0 AND c.id = #{id}
+    </select>
+
+    <!--
+      匠人端日历排期：区间左闭右开 [start, end)。
+      用 >= start AND < end 而不是 BETWEEN，是为了让「查 9 月 20 日」这类需求
+      可以直接传 [20日00:00, 21日00:00)，既不会漏掉 20 日 23:59 开课的课，
+      也不会把 21 日 00:00 的课算进 20 日。
+    -->
+    <select id="selectCalendarList" resultType="com.lmf.heritage.module.course.vo.CourseListVO">
+        SELECT
+        <include refid="voColumns"/>
+        <include refid="voJoins"/>
+        WHERE c.deleted = 0
+        AND c.craftsman_id = #{craftsmanId}
+        AND c.start_time &gt;= #{start}
+        AND c.start_time &lt; #{end}
+        ORDER BY c.start_time ASC, c.id ASC
+    </select>
+
+    <!--
+      管理端课程列表
+      ============================================================================
+      复用 voColumns / voJoins：课程字段（含「已约名额 = 总名额 − 剩余名额」这个
+      算出来的口径）前台、匠人端、管理端三处必须完全一致，各自抄一份迟早会漂移。
+      只在后面追加审核相关字段。
+
+      排序默认 create_time DESC：与商品审核同理，审核队列关心「最近提交了什么」。
+      注意这里不能复用前台那套 sort 分支 —— 前台的 sort=new 是按 start_time 排
+      （用户关心「哪门课先开」），管理端关心的是「哪门课刚提交」。
+    -->
+    <select id="selectAdminCoursePage" resultType="com.lmf.heritage.module.course.vo.AdminCourseVO">
+        SELECT
+        <include refid="voColumns"/>,
+        c.audit_status  AS auditStatus,
+        c.reject_reason AS rejectReason,
+        c.create_time   AS createTime,
+        c.update_time   AS updateTime
+        <include refid="voJoins"/>
+        WHERE c.deleted = 0
+        <if test="q.status != null">
+            AND c.status = #{q.status}
+        </if>
+        <if test="q.auditStatus != null">
+            AND c.audit_status = #{q.auditStatus}
+        </if>
+        <if test="q.categoryId != null">
+            AND c.category_id = #{q.categoryId}
+        </if>
+        <if test="q.craftsmanId != null">
+            AND c.craftsman_id = #{q.craftsmanId}
+        </if>
+        <if test="q.keyword != null">
+            AND (c.title LIKE CONCAT('%', #{q.keyword}, '%')
+            OR c.subtitle LIKE CONCAT('%', #{q.keyword}, '%')
+            OR cr.real_name LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        <if test="q.startTime != null">
+            AND c.start_time &gt;= #{q.startTime}
+        </if>
+        <if test="q.endTime != null">
+            AND c.start_time &lt;= #{q.endTime}
+        </if>
+        <choose>
+            <when test="q.sort == 'start'">ORDER BY c.start_time ASC, c.id DESC</when>
+            <when test="q.sort == 'hot'">ORDER BY c.booking_count DESC, c.view_count DESC, c.id DESC</when>
+            <!-- 名额紧张 = 剩余名额占总量比例最低的排前面，用除法而不是绝对剩余数：
+                 剩余 3/10 与剩余 3/100 的紧张程度不是一回事 -->
+            <when test="q.sort == 'quota'">ORDER BY (c.remain_quota / c.total_quota) ASC, c.id DESC</when>
+            <otherwise>ORDER BY c.create_time DESC, c.id DESC</otherwise>
+        </choose>
+    </select>
+
+    <!--
+      课程审核详情
+      6 个标量子查询取报名结构：单行查询，不存在 N+1，比拆成 7 次往返更省。
+      匠人手机号从 user 表取 —— 审核沟通要用，但前台匠人主页不返回手机号。
+    -->
+    <select id="selectAdminCourseDetail" resultType="com.lmf.heritage.module.course.vo.AdminCourseDetailVO">
+        SELECT
+        <include refid="voColumns"/>,
+        c.audit_status  AS auditStatus,
+        c.reject_reason AS rejectReason,
+        c.create_time   AS createTime,
+        c.update_time   AS updateTime,
+        c.description,
+        c.detail,
+        u.phone AS craftsmanPhone,
+        (SELECT COUNT(*) FROM booking b WHERE b.deleted = 0 AND b.course_id = c.id AND b.status = 0) AS bookingWait,
+        (SELECT COUNT(*) FROM booking b WHERE b.deleted = 0 AND b.course_id = c.id AND b.status = 1) AS bookingPassed,
+        (SELECT COUNT(*) FROM booking b WHERE b.deleted = 0 AND b.course_id = c.id AND b.status = 2) AS bookingRejected,
+        (SELECT COUNT(*) FROM booking b WHERE b.deleted = 0 AND b.course_id = c.id AND b.status = 3) AS bookingCanceled,
+        (SELECT COUNT(*) FROM booking b WHERE b.deleted = 0 AND b.course_id = c.id AND b.status = 4) AS bookingCheckedIn,
+        (SELECT COUNT(*) FROM booking b WHERE b.deleted = 0 AND b.course_id = c.id AND b.status = 5) AS bookingFinished
+        FROM course c
+        LEFT JOIN craftsman cr ON cr.id = c.craftsman_id AND cr.deleted = 0
+        LEFT JOIN category cat ON cat.id = c.category_id AND cat.deleted = 0
+        LEFT JOIN `user` u ON u.id = cr.user_id AND u.deleted = 0
+        WHERE c.deleted = 0
+        AND c.id = #{id}
+    </select>
+
+    <!--
+      课程审核状态流转（通过 / 驳回 / 违规下架共用）
+      只动 audit_status 与 reject_reason —— 课程状态（未开始/进行中/已结束）
+      是时间的函数，由定时任务推进，审核不参与。
+      fromAuditStatus 进 WHERE 做并发护栏：两个管理员同时点，只有一个改得到。
+    -->
+    <update id="updateAuditByIds">
+        UPDATE course
+        SET audit_status = #{auditStatus},
+        reject_reason = #{rejectReason},
+        update_time = NOW()
+        WHERE deleted = 0
+        AND audit_status = #{fromAuditStatus}
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>

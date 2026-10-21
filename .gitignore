@@ -1,0 +1,53 @@
+# ---- 依赖 ----
+node_modules/
+heritage-web/node_modules/
+
+# ---- 构建产物 ----
+target/
+heritage-server/target/
+dist/
+heritage-web/dist/
+*.jar
+*.war
+*.class
+
+# ---- 日志 ----
+logs/
+*.log
+*.log.*
+
+# ---- IDE / 系统 ----
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- 报告与截图中间产物（体积大、非源码）----
+_shots/
+_shots_w/
+_report_tmp/
+_verify/
+report_figs/
+*.docx
+*.pdf
+
+# ---- 数据库备份 ----
+*.dumpstream
+*.lst
+*.gz
+*.sql.gz
+
+# ---- 本地敏感配置 ----
+heritage-server/src/main/resources/application-local.yml
+heritage-server/src/main/resources/application-local.yaml
+.env
+.env.local
+
+# ---- 其他 ----
+*.tmp
+*.bak
+
+# ---- WorkBuddy 内部记忆/会话数据 ----
+.workbuddy/

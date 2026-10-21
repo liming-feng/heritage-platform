@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.coupon.mapper.UserCouponMapper">
+
+    <!--
+      「我的优惠券」统一列清单：
+      用户的领取记录（uc）与券种定义（c）联起来，一次把券名 / 门槛 / 折扣 / 有效期都带出来。
+      抽成 sql 片段是因为「我的券列表」与「结算页可用券」用的是同一份 VO。
+    -->
+    <sql id="voColumns">
+        uc.id,
+        uc.coupon_id    AS couponId,
+        uc.user_id      AS userId,
+        uc.status,
+        uc.order_no     AS orderNo,
+        uc.used_time    AS usedTime,
+        uc.expire_time  AS expireTime,
+        uc.create_time  AS createTime,
+        c.name,
+        c.type,
+        c.scope,
+        c.threshold,
+        c.amount,
+        c.discount,
+        c.description
+    </sql>
+
+    <!--
+      我的优惠券分页。
+      排序：未使用（0）→ 已使用（1）→ 已过期（2）；同一状态下按过期时间升序，
+      让「快过期的券」排在最前面 —— 这是用户最需要看到的。
+    -->
+    <select id="selectMinePage" resultType="com.lmf.heritage.module.coupon.vo.UserCouponVO">
+        SELECT
+        <include refid="voColumns"/>
+        FROM user_coupon uc
+        JOIN coupon c ON c.id = uc.coupon_id
+        WHERE uc.deleted = 0
+        AND uc.user_id = #{userId}
+        <if test="status != null">
+            AND uc.status = #{status}
+        </if>
+        ORDER BY uc.status ASC, uc.expire_time ASC, uc.id DESC
+    </select>
+
+    <!--
+      结算页可用券的候选集：
+      「这张券还用得了吗」在 SQL 层只判断三件事 —— 未使用、没过期、券种仍启用。
+      门槛与抵扣金额交给策略模式算，不在 SQL 里写死公式（那是 if-else 换了个地方写）。
+    -->
+    <select id="selectUsable" resultType="com.lmf.heritage.module.coupon.vo.UserCouponVO">
+        SELECT
+        <include refid="voColumns"/>
+        FROM user_coupon uc
+        JOIN coupon c ON c.id = uc.coupon_id
+        WHERE uc.deleted = 0
+        AND c.deleted = 0
+        AND uc.user_id = #{userId}
+        AND uc.status = 0
+        AND c.status = 1
+        AND (uc.expire_time IS NULL OR uc.expire_time &gt; #{now})
+        ORDER BY uc.expire_time ASC, uc.id ASC
+    </select>
+
+    <!--
+      管理端领取记录分页。
+      JOIN coupon 拿券种定义、LEFT JOIN `user` 拿领取人 —— 用 LEFT JOIN 是因为
+      用户被逻辑删除后，领取记录本身仍然是有效数据，不能因为 JOIN 把它过滤掉。
+    -->
+    <select id="selectAdminReceivePage" resultType="com.lmf.heritage.module.coupon.vo.AdminUserCouponVO">
+        SELECT
+            uc.id,
+            uc.coupon_id    AS couponId,
+            uc.user_id      AS userId,
+            uc.status,
+            uc.order_no     AS orderNo,
+            uc.used_time    AS usedTime,
+            uc.expire_time  AS expireTime,
+            uc.create_time  AS createTime,
+            c.name          AS couponName,
+            c.type,
+            c.scope,
+            c.threshold,
+            c.amount,
+            c.discount,
+            u.username      AS username,
+            u.nickname      AS nickname
+        FROM user_coupon uc
+        JOIN coupon c ON c.id = uc.coupon_id
+        LEFT JOIN `user` u ON u.id = uc.user_id
+        WHERE uc.deleted = 0
+        <if test="q.couponId != null">
+            AND uc.coupon_id = #{q.couponId}
+        </if>
+        <if test="q.userId != null">
+            AND uc.user_id = #{q.userId}
+        </if>
+        <if test="q.status != null">
+            AND uc.status = #{q.status}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (
+                u.username  LIKE CONCAT('%', #{q.keyword}, '%')
+                OR u.nickname LIKE CONCAT('%', #{q.keyword}, '%')
+                OR c.name      LIKE CONCAT('%', #{q.keyword}, '%')
+                OR uc.order_no LIKE CONCAT('%', #{q.keyword}, '%')
+            )
+        </if>
+        <if test="q.startTime != null">
+            AND uc.create_time &gt;= #{q.startTime}
+        </if>
+        <if test="q.endTime != null">
+            AND uc.create_time &lt;= #{q.endTime}
+        </if>
+        ORDER BY uc.id DESC
+    </select>
+
+    <!--
+      全平台领取记录总览。
+      这里统计的是 user_coupon 的实际行数（与 coupon.received_count 互为对账），
+      三个状态互斥且穷举：未使用 + 已使用 + 已过期 = 领取总量。
+    -->
+    <select id="statOverall" resultType="java.util.Map">
+        SELECT
+            COUNT(*)                                                AS receiveTotal,
+            COALESCE(SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END), 0) AS unusedTotal,
+            COALESCE(SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END), 0) AS usedTotal,
+            COALESCE(SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END), 0) AS expiredTotal
+        FROM user_coupon
+        WHERE deleted = 0
+    </select>
+
+    <!-- 单张券的完整视图（下单时校验归属与状态用） -->
+    <select id="selectVoById" resultType="com.lmf.heritage.module.coupon.vo.UserCouponVO">
+        SELECT
+        <include refid="voColumns"/>
+        FROM user_coupon uc
+        JOIN coupon c ON c.id = uc.coupon_id
+        WHERE uc.deleted = 0 AND uc.id = #{id}
+    </select>
+
+</mapper>

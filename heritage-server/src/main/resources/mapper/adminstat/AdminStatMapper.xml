@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.adminstat.mapper.AdminStatMapper">
+
+    <!--
+      这一组 SQL 服务于「管理端数据大屏」，与业务模块的列表查询有三点不同：
+        1. 一律全表聚合，不分页、不按登录身份过滤；
+        2. 分类维度用 LEFT JOIN category 而不是只查 goods 的 category_id
+           —— 没有作品的分类也要出现在饼图里（值为 0），
+              「这个分类一个作品都没有」本身就是运营需要知道的信息；
+        3. 只统计 audit_status = 1：待审核的作品还不是平台内容，
+           把它算进「非遗作品数量」会让这个数字虚高，且与前台可见数量对不上。
+    -->
+
+    <!-- ① 非遗作品数量饼图 -->
+    <select id="selectGoodsCountByCategory"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$PieItem">
+        SELECT
+            c.name                       AS name,
+            COUNT(g.id)                  AS value
+        FROM category c
+        LEFT JOIN goods g
+               ON g.category_id = c.id
+              AND g.deleted = 0
+              AND g.audit_status = 1
+        WHERE c.deleted = 0
+        GROUP BY c.id, c.name
+        ORDER BY value DESC, c.id ASC
+    </select>
+
+    <!--
+      ② 课程热度柱状图。
+      口径与「预约监管-课程热度榜」「匠人看板」完全一致：value = 占用名额之和
+      （status IN (0,1,4,5)），不是预约单数 —— 一张单可能约多个名额。
+      同一门课在三个后台必须给出同一个排名，否则运营不知道该信哪个。
+    -->
+    <select id="selectCourseHeat"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$CourseHeatItem">
+        SELECT
+            c.id                              AS courseId,
+            c.title                           AS title,
+            COALESCE(SUM(b.quota), 0)         AS quota,
+            COUNT(b.id)                       AS bookingCount
+        FROM course c
+        LEFT JOIN booking b
+               ON b.course_id = c.id
+              AND b.deleted = 0
+              AND b.status IN (0, 1, 4, 5)
+        WHERE c.deleted = 0
+        GROUP BY c.id, c.title
+        ORDER BY quota DESC, bookingCount DESC, c.id ASC
+        LIMIT #{topN}
+    </select>
+
+    <!-- ③ 浏览量合计：三段各自统计，一次查回 -->
+    <select id="selectViewTotal" resultType="java.util.Map">
+        SELECT
+            (SELECT COALESCE(SUM(view_count), 0) FROM goods   WHERE deleted = 0) AS goodsView,
+            (SELECT COALESCE(SUM(view_count), 0) FROM course  WHERE deleted = 0) AS courseView,
+            (SELECT COALESCE(SUM(view_count), 0) FROM article WHERE deleted = 0) AS articleView
+    </select>
+
+    <!-- ③ 收藏按目标类型分组 -->
+    <select id="selectFavoriteByType" resultType="java.util.Map">
+        SELECT target_type AS targetType, COUNT(*) AS cnt
+        FROM favorite
+        WHERE deleted = 0
+        GROUP BY target_type
+        ORDER BY target_type ASC
+    </select>
+
+    <!-- ④ 商品销量饼图（件） -->
+    <select id="selectSalesQuantityByCategory"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$PieItem">
+        SELECT
+            c.name                            AS name,
+            COALESCE(SUM(g.sales), 0)         AS value
+        FROM category c
+        LEFT JOIN goods g
+               ON g.category_id = c.id
+              AND g.deleted = 0
+        WHERE c.deleted = 0
+        GROUP BY c.id, c.name
+        ORDER BY value DESC, c.id ASC
+    </select>
+
+    <!--
+      ⑤ 交易金额折线图。
+      只统计「已经付过钱」的订单（pay_time IS NOT NULL）且排除已取消（5）——
+      待付款（0）的订单金额是「想买」不是「买了」，算进交易额会让曲线的含义说不清。
+      unit 决定横坐标粒度，两种粒度共用同一段 SQL，避免维护两份几乎一样的聚合。
+    -->
+    <select id="selectSalesTrend"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$TrendPoint">
+        SELECT
+            <choose>
+                <when test="unit == 'month'">
+                    DATE_FORMAT(pay_time, '%Y-%m')     AS label,
+                </when>
+                <otherwise>
+                    DATE_FORMAT(pay_time, '%Y-%m-%d')  AS label,
+                </otherwise>
+            </choose>
+            COALESCE(SUM(pay_amount), 0)       AS value,
+            COUNT(*)                           AS count
+        FROM orders
+        WHERE deleted = 0
+          AND status IN (1, 2, 3, 4)
+          AND pay_time IS NOT NULL
+          AND pay_time &gt;= #{from}
+        GROUP BY label
+        ORDER BY label ASC
+    </select>
+
+    <!-- ⑥ 订单状态统计：只返回有数据的状态，六种补零在服务层做 -->
+    <select id="selectOrderStatus" resultType="java.util.Map">
+        SELECT status, COUNT(*) AS cnt
+        FROM orders
+        WHERE deleted = 0
+        GROUP BY status
+        ORDER BY status ASC
+    </select>
+
+    <!--
+      ⑦ 优惠券领取使用统计。
+      usedCount 走「已聚合好的派生表」再 LEFT JOIN：直接 JOIN user_coupon 再 GROUP BY
+      会让 received_count 被连乘放大（一张券有 N 条领取记录就翻 N 倍）。
+    -->
+    <select id="selectCouponUse"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$CouponUseItem">
+        SELECT
+            c.id                        AS couponId,
+            c.name                      AS name,
+            c.received_count            AS receivedCount,
+            COALESCE(u.usedCount, 0)    AS usedCount
+        FROM coupon c
+        LEFT JOIN (
+            SELECT coupon_id, COUNT(*) AS usedCount
+            FROM user_coupon
+            WHERE deleted = 0 AND status = 1
+            GROUP BY coupon_id
+        ) u ON u.coupon_id = c.id
+        WHERE c.deleted = 0
+        ORDER BY receivedCount DESC, c.id ASC
+    </select>
+
+    <!--
+      ⑧ 匠人销售排行。
+      按「订单项 → 商品 → 匠人」归因，而不是按 orders.craftsman_id：
+      后者是下单时为分单方便冗余的字段，一单含多个匠人的商品时它只能记一个，
+      用它算排行会把销售额全算到其中一个匠人头上。
+    -->
+    <select id="selectCraftsmanRank"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$CraftsmanSalesItem">
+        SELECT
+            g.craftsman_id                              AS craftsmanId,
+            COALESCE(cr.real_name, '未署名')             AS name,
+            COALESCE(SUM(oi.price * oi.quantity), 0)     AS amount,
+            COALESCE(SUM(oi.quantity), 0)                AS quantity,
+            COUNT(DISTINCT o.id)                         AS orderCount
+        FROM order_item oi
+        JOIN orders o ON o.id = oi.order_id
+             AND o.deleted = 0
+             AND o.status IN (1, 2, 3, 4)
+        JOIN goods g ON g.id = oi.goods_id
+        LEFT JOIN craftsman cr ON cr.id = g.craftsman_id AND cr.deleted = 0
+        GROUP BY g.craftsman_id, cr.real_name
+        ORDER BY amount DESC, quantity DESC
+        LIMIT #{topN}
+    </select>
+
+    <!-- ⑨ 每日新增用户 -->
+    <select id="selectUserGrowth"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$TrendPoint">
+        SELECT
+            DATE_FORMAT(create_time, '%Y-%m-%d') AS label,
+            COUNT(*)                             AS count
+        FROM `user`
+        WHERE deleted = 0
+          AND create_time &gt;= #{from}
+        GROUP BY label
+        ORDER BY label ASC
+    </select>
+
+    <!--
+      ⑩ 商品分类销售额占比。
+      与 ④ 的区别：④ 是销量（件），这里是销售额（元），两者排名常常不一致 ——
+      「卖得最多」和「卖得最贵」是不同的运营结论，所以要两张图而不是一张。
+    -->
+    <select id="selectSalesAmountByCategory"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$PieItem">
+        SELECT
+            c.name                                        AS name,
+            COALESCE(SUM(oi.price * oi.quantity), 0)      AS value
+        FROM category c
+        LEFT JOIN goods g
+               ON g.category_id = c.id
+              AND g.deleted = 0
+        LEFT JOIN order_item oi ON oi.goods_id = g.id
+        LEFT JOIN orders o
+               ON o.id = oi.order_id
+              AND o.deleted = 0
+              AND o.status IN (1, 2, 3, 4)
+        WHERE c.deleted = 0
+        GROUP BY c.id, c.name
+        ORDER BY value DESC, c.id ASC
+    </select>
+
+    <!--
+      ⑪ 月度活跃用户。
+      活跃 = 当月有过下单、预约或浏览记录；三个来源 UNION 后按用户去重。
+      不看「登录」是因为登录记录没有落库，而浏览/下单/预约都留下了 user_id。
+    -->
+    <select id="selectMonthlyActive"
+            resultType="com.lmf.heritage.module.adminstat.vo.PlatformStatVO$TrendPoint">
+        SELECT label, COUNT(DISTINCT userId) AS value FROM (
+            SELECT DATE_FORMAT(create_time, '%Y-%m') AS label, user_id AS userId
+            FROM orders        WHERE deleted = 0 AND create_time &gt;= #{from}
+            UNION ALL
+            SELECT DATE_FORMAT(create_time, '%Y-%m') AS label, user_id AS userId
+            FROM booking       WHERE deleted = 0 AND create_time &gt;= #{from}
+            UNION ALL
+            SELECT DATE_FORMAT(browse_time, '%Y-%m') AS label, user_id AS userId
+            FROM browse_history                      WHERE browse_time &gt;= #{from}
+        ) t
+        GROUP BY label
+        ORDER BY label ASC
+    </select>
+
+    <!--
+      总览大屏：八个数字一次性查回。
+      用子查询而不是八条独立 SQL —— 管理端大屏每次刷新都会调它，
+      八次往返的开销不必要；而且放在一条 SQL 里能保证八个数字取自同一时刻。
+    -->
+    <select id="selectOverview" resultType="java.util.Map">
+        SELECT
+            (SELECT COUNT(*) FROM `user`      WHERE deleted = 0 AND status = 1)               AS userTotal,
+            (SELECT COUNT(*) FROM craftsman   WHERE deleted = 0 AND audit_status = 1)         AS craftsmanTotal,
+            (SELECT COUNT(*) FROM goods       WHERE deleted = 0 AND status = 1 AND audit_status = 1) AS goodsOnSale,
+            (SELECT COUNT(*) FROM course      WHERE deleted = 0 AND audit_status = 1 AND status IN (0, 1)) AS courseOpen,
+            (SELECT COUNT(*) FROM orders      WHERE deleted = 0 AND status IN (1, 2, 3, 4))   AS orderTotal,
+            (SELECT COALESCE(SUM(pay_amount), 0) FROM orders
+              WHERE deleted = 0 AND status IN (1, 2, 3, 4))                                   AS payAmount,
+            (SELECT COUNT(*) FROM booking     WHERE deleted = 0 AND status IN (0, 1, 4, 5))   AS bookingTotal,
+            (SELECT COUNT(*) FROM goods       WHERE deleted = 0 AND audit_status = 0)         AS waitGoods,
+            (SELECT COUNT(*) FROM course      WHERE deleted = 0 AND audit_status = 0)         AS waitCourse,
+            (SELECT COUNT(*) FROM craftsman   WHERE deleted = 0 AND audit_status = 0)         AS waitCraftsman,
+            (SELECT COUNT(*) FROM feedback    WHERE deleted = 0 AND status = 0)               AS waitFeedback
+    </select>
+
+</mapper>

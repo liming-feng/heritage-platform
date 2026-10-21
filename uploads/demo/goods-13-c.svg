@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5b3a5e"/>
+      <stop offset="100%" stop-color="#b393b8"/>
+    </linearGradient>
+    <pattern id="p" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="20" cy="20" r="1.5" fill="#ffffff" opacity="0.18"/>
+    </pattern>
+  </defs>
+  <rect width="600" height="450" fill="url(#g)"/>
+  <rect width="600" height="450" fill="url(#p)"/>
+  <rect x="24" y="27" width="552" height="396"
+        fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="1.5" rx="8"/>
+  <text x="50%" y="47%" text-anchor="middle" fill="#ffffff" opacity="0.96"
+        font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="45" font-weight="600">刺绣手帕·并蒂莲</text>
+  <text x="50%" y="62%" text-anchor="middle" fill="#ffffff" opacity="0.78"
+        font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="24">场景图 · 非遗手作</text>
+  <text x="50%" y="78%" text-anchor="middle" fill="#ffffff" opacity="0.6" font-family="'PingFang SC','Microsoft YaHei',sans-serif" font-size="17">场景</text>
+</svg>

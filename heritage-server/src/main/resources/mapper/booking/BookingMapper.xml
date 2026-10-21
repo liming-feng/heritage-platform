@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.booking.mapper.BookingMapper">
+
+    <!--
+      统一的查询列清单。
+      抽成 sql 片段的原因：列表与详情用的是同一份 VO，如果两处各写一遍列名，
+      以后加一个字段很容易只改一处，出现「列表有、详情没有」的诡异问题。
+    -->
+    <sql id="voColumns">
+        b.id,
+        b.booking_no              AS bookingNo,
+        b.course_id               AS courseId,
+        b.user_id                 AS userId,
+        b.craftsman_id            AS craftsmanId,
+        b.contact_name            AS contactName,
+        b.contact_phone           AS contactPhone,
+        b.quota                   AS quota,
+        b.remark                  AS remark,
+        b.status                  AS status,
+        b.checkin_code            AS checkinCode,
+        b.checkin_time            AS checkinTime,
+        b.audit_time              AS auditTime,
+        b.reject_reason           AS rejectReason,
+        b.cancel_reason           AS cancelReason,
+        b.cancel_by               AS cancelBy,
+        b.cancel_time             AS cancelTime,
+        b.create_time             AS createTime,
+        c.title                   AS courseTitle,
+        c.cover                   AS courseCover,
+        c.address                 AS courseAddress,
+        c.start_time              AS courseStartTime,
+        c.end_time                AS courseEndTime,
+        c.price                   AS coursePrice,
+        c.booking_deadline        AS courseBookingDeadline,
+        c.cancel_deadline         AS courseCancelDeadline,
+        cr.real_name              AS craftsmanName,
+        cr.craft_type             AS craftType,
+        u.nickname                AS buyerName
+    </sql>
+
+    <sql id="voJoins">
+        FROM booking b
+        LEFT JOIN course c     ON c.id = b.course_id
+        LEFT JOIN craftsman cr ON cr.id = b.craftsman_id
+        LEFT JOIN `user` u     ON u.id = b.user_id
+    </sql>
+
+    <!--
+      预约分页查询（题眼）
+      一次联表带出：课程标题/封面/地点/时间/费用、匠人姓名与门类、预约人昵称。
+      用 LEFT JOIN 而不是逐行标量子查询，避免每行都额外跑几次查询。
+    -->
+    <select id="selectBookingPage" resultType="com.lmf.heritage.module.booking.vo.BookingVO">
+        SELECT
+        <include refid="voColumns"/>
+        <include refid="voJoins"/>
+        WHERE b.deleted = 0
+        <if test="userId != null">
+            AND b.user_id = #{userId}
+        </if>
+        <if test="craftsmanId != null">
+            AND b.craftsman_id = #{craftsmanId}
+        </if>
+        <if test="q.status != null">
+            AND b.status = #{q.status}
+        </if>
+        <if test="q.courseId != null">
+            AND b.course_id = #{q.courseId}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (
+                b.booking_no    LIKE CONCAT('%', #{q.keyword}, '%')
+                OR c.title      LIKE CONCAT('%', #{q.keyword}, '%')
+                OR b.contact_name LIKE CONCAT('%', #{q.keyword}, '%')
+            )
+        </if>
+        <if test="q.onlyTimeout != null and q.onlyTimeout and timeoutHours != null">
+            AND b.status = 0
+            AND b.create_time &lt;= DATE_SUB(NOW(), INTERVAL #{timeoutHours} HOUR)
+        </if>
+        ORDER BY b.id DESC
+    </select>
+
+    <!-- 单条预约详情（列清单与列表共用，保证两端字段完全一致） -->
+    <select id="selectVoById" resultType="com.lmf.heritage.module.booking.vo.BookingVO">
+        SELECT
+        <include refid="voColumns"/>
+        <include refid="voJoins"/>
+        WHERE b.deleted = 0 AND b.id = #{id}
+    </select>
+
+    <!--
+      管理端全平台预约列表
+      ============================================================================
+      复用 voColumns / voJoins：一条预约在三端必须是同一个东西，
+      各写一份列清单迟早会出现「用户端能看到核销码、管理端看不到」这类差异。
+      这里只在 WHERE 上做文章 —— 管理端多了用户 / 匠人 / 提交时间三个下钻维度。
+
+      onlyTimeout 与匠人端「超时筛选」用同一个判定式（create_time <= NOW() - 时限），
+      保证「匠人端看到的超时单」与「管理端看到的超时单」是同一批。
+    -->
+    <select id="selectAdminBookingPage" resultType="com.lmf.heritage.module.booking.vo.BookingVO">
+        SELECT
+        <include refid="voColumns"/>
+        <include refid="voJoins"/>
+        WHERE b.deleted = 0
+        <if test="q.status != null">
+            AND b.status = #{q.status}
+        </if>
+        <if test="q.courseId != null">
+            AND b.course_id = #{q.courseId}
+        </if>
+        <if test="q.userId != null">
+            AND b.user_id = #{q.userId}
+        </if>
+        <if test="q.craftsmanId != null">
+            AND b.craftsman_id = #{q.craftsmanId}
+        </if>
+        <if test="q.keyword != null">
+            AND (b.booking_no    LIKE CONCAT('%', #{q.keyword}, '%')
+            OR b.contact_name    LIKE CONCAT('%', #{q.keyword}, '%')
+            OR b.contact_phone   LIKE CONCAT('%', #{q.keyword}, '%')
+            OR c.title           LIKE CONCAT('%', #{q.keyword}, '%')
+            OR cr.real_name      LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        <if test="q.startTime != null">
+            AND b.create_time &gt;= #{q.startTime}
+        </if>
+        <if test="q.endTime != null">
+            AND b.create_time &lt;= #{q.endTime}
+        </if>
+        <if test="q.onlyTimeout != null and q.onlyTimeout and timeoutHours != null">
+            AND b.status = 0
+            AND b.create_time &lt;= DATE_SUB(NOW(), INTERVAL #{timeoutHours} HOUR)
+        </if>
+        <choose>
+            <when test="q.sort == 'old'">ORDER BY b.create_time ASC, b.id ASC</when>
+            <when test="q.sort == 'course'">ORDER BY c.start_time ASC, b.id DESC</when>
+            <otherwise>ORDER BY b.create_time DESC, b.id DESC</otherwise>
+        </choose>
+    </select>
+
+    <!--
+      ① 时段分布
+      按「课程开课时间」落在哪个时段聚合 —— 看的是排期结构，不是用户下单时刻。
+      用 CASE 分四段并在服务层补齐空时段：柱状图少一根柱子会让人以为那个时段不存在。
+      注意 HOUR() 对 NULL 返回 NULL，这里显式排除 start_time 为空的课程。
+    -->
+    <select id="statTimeSlot" resultType="java.util.Map">
+        SELECT
+        CASE
+        WHEN HOUR(c.start_time) &gt;= 6  AND HOUR(c.start_time) &lt; 12 THEN 'morning'
+        WHEN HOUR(c.start_time) &gt;= 12 AND HOUR(c.start_time) &lt; 18 THEN 'afternoon'
+        WHEN HOUR(c.start_time) &gt;= 18 THEN 'evening'
+        ELSE 'night'
+        END AS slot,
+        COUNT(*) AS bookingCount,
+        SUM(CASE WHEN b.status IN (1, 4, 5) THEN 1 ELSE 0 END) AS passedCount,
+        SUM(b.quota) AS quotaSum
+        FROM booking b
+        JOIN course c ON c.id = b.course_id
+        WHERE b.deleted = 0
+        AND c.start_time IS NOT NULL
+        GROUP BY slot
+    </select>
+
+    <!--
+      ② 爽约率汇总（只在已结束课程上算）
+      c.status = 2 是「课程已结束」——课程没结束就谈不上「应到未到」。
+      分母取 status IN (1,4,5)：待审核 / 已拒绝 / 已取消的预约没有「到不到场」这回事。
+      endedCourseCount 一并返回，供服务层判断「完全没数据」与「爽约率真的为 0」的区别。
+    -->
+    <select id="statAbsentOverall" resultType="java.util.Map">
+        SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN b.status IN (4, 5) THEN 1 ELSE 0 END) AS attend,
+        SUM(CASE WHEN b.status = 1 THEN 1 ELSE 0 END) AS absent,
+        (SELECT COUNT(*) FROM course WHERE deleted = 0 AND status = 2) AS endedCourseCount
+        FROM booking b
+        JOIN course c ON c.id = b.course_id
+        WHERE b.deleted = 0
+        AND c.deleted = 0
+        AND c.status = 2
+        AND b.status IN (1, 4, 5)
+    </select>
+
+    <!--
+      ② 爽约率 · 单门课程
+      HAVING 里过滤掉「没人爽约」的课程：榜单的意义是找出有问题的课，
+      把一堆 0 爽约的课堆上来只会把真正的问题课挤掉。
+    -->
+    <select id="statAbsentByCourse" resultType="java.util.Map">
+        SELECT
+        c.id AS courseId,
+        c.title AS courseTitle,
+        cr.real_name AS craftsmanName,
+        COUNT(*) AS total,
+        SUM(CASE WHEN b.status IN (4, 5) THEN 1 ELSE 0 END) AS attend,
+        SUM(CASE WHEN b.status = 1 THEN 1 ELSE 0 END) AS absent
+        FROM booking b
+        JOIN course c ON c.id = b.course_id
+        LEFT JOIN craftsman cr ON cr.id = c.craftsman_id
+        WHERE b.deleted = 0
+        AND c.deleted = 0
+        AND c.status = 2
+        AND b.status IN (1, 4, 5)
+        GROUP BY c.id, c.title, cr.real_name
+        HAVING absent &gt; 0
+        ORDER BY absent DESC, total DESC, c.id ASC
+        LIMIT #{topN}
+    </select>
+
+    <!--
+      ③ 审核转化漏斗
+      一次查询把所有计数取齐：分成 6 条 SQL 会得到 6 个可能互相矛盾的快照
+      （这期间有人提交了预约），同一张图上的数字必须来自同一个时间点。
+    -->
+    <select id="statFunnel" resultType="java.util.Map">
+        SELECT
+        COUNT(*) AS submitted,
+        SUM(CASE WHEN status IN (1, 4, 5) THEN 1 ELSE 0 END) AS passed,
+        SUM(CASE WHEN status IN (4, 5) THEN 1 ELSE 0 END) AS checkedIn,
+        SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) AS waitAudit,
+        SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS rejected,
+        SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS canceled
+        FROM booking
+        WHERE deleted = 0
+    </select>
+
+    <!--
+      ④ 课程热度榜
+      排序主键是「占用名额之和」（status IN 0,1,4,5 的 quota 之和），
+      与匠人看板的课程热度榜同一口径 —— 两个后台对同一门课给出的热度排名必须一致。
+      用 LEFT JOIN booking 而不是只统计有预约的课程：一个预约都没有的课程
+      也要以 0 热度出现，否则运营会误以为它不存在。
+    -->
+    <select id="statCourseHeat" resultType="java.util.Map">
+        SELECT
+        c.id AS courseId,
+        c.title AS courseTitle,
+        c.cover AS courseCover,
+        cr.real_name AS craftsmanName,
+        c.start_time AS startTime,
+        c.status AS status,
+        c.total_quota AS totalQuota,
+        c.remain_quota AS remainQuota,
+        IFNULL(SUM(CASE WHEN b.status IN (0, 1, 4, 5) THEN 1 ELSE 0 END), 0) AS bookingCount,
+        IFNULL(SUM(CASE WHEN b.status IN (0, 1, 4, 5) THEN b.quota ELSE 0 END), 0) AS bookingPeople
+        FROM course c
+        LEFT JOIN booking b ON b.course_id = c.id AND b.deleted = 0
+        LEFT JOIN craftsman cr ON cr.id = c.craftsman_id
+        WHERE c.deleted = 0
+        GROUP BY c.id, c.title, c.cover, cr.real_name, c.start_time, c.status,
+        c.total_quota, c.remain_quota
+        ORDER BY bookingPeople DESC, bookingCount DESC, c.id ASC
+        LIMIT #{topN}
+    </select>
+
+    <!--
+      ⑤ 近 N 天预约趋势
+      按提交日期分组，只返回有数据的日期；缺口由服务层补齐成连续日期。
+      与匠人看板同一个处理方式：SQL 里生成连续日期要么递归 CTE 要么建日历表，
+      为一张折线图不值得。
+    -->
+    <select id="statTrend" resultType="java.util.Map">
+        SELECT
+        DATE_FORMAT(create_time, '%Y-%m-%d') AS statDay,
+        COUNT(*) AS cnt,
+        SUM(CASE WHEN status IN (1, 4, 5) THEN 1 ELSE 0 END) AS passedCnt,
+        SUM(quota) AS quotaSum
+        FROM booking
+        WHERE deleted = 0
+        AND create_time &gt;= #{start}
+        GROUP BY statDay
+        ORDER BY statDay
+    </select>
+
+</mapper>

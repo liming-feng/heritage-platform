@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.user.mapper.UserMapper">
+
+    <!--
+      管理端用户列表
+      ============================================================================
+      为什么必须显式写 u.deleted = 0：
+        MyBatis-Plus 的逻辑删除只作用于它自己生成的 SQL（BaseMapper 的那几个方法）。
+        走 XML 的自定义查询不经过那层拼接，漏写就等于「已注销账号还会出现在列表里」。
+        这里两处都写了：u.deleted = 0（用户本身）与 cr.deleted = 0（放在 ON 里，
+        因为这是 LEFT JOIN —— 条件写在 WHERE 会把没有匠人行的普通用户整行过滤掉，
+        那就退化成 INNER JOIN 了）。
+
+      为什么按 create_time DESC, id DESC 排：
+        6.26.1 把演示账号的注册时间按天铺开了，同一天注册的会有多个；
+        只按时间排的话同一天内顺序随机，补上 id 才能得到稳定的顺序。
+    -->
+    <select id="selectAdminUserPage" resultType="com.lmf.heritage.module.user.vo.AdminUserVO">
+        SELECT
+            u.id,
+            u.username,
+            u.nickname,
+            u.avatar,
+            u.phone,
+            u.email,
+            u.gender,
+            u.role,
+            u.status,
+            u.create_time  AS createTime,
+            u.update_time  AS updateTime,
+            cr.id             AS craftsmanId,
+            cr.real_name      AS realName,
+            cr.craft_type     AS craftType,
+            cr.audit_status   AS auditStatus,
+            cr.reject_reason  AS rejectReason,
+            cr.follower_count AS followerCount
+        FROM `user` u
+        LEFT JOIN craftsman cr ON cr.user_id = u.id AND cr.deleted = 0
+        WHERE u.deleted = 0
+        <if test="q.role != null">
+            AND u.role = #{q.role}
+        </if>
+        <if test="q.status != null">
+            AND u.status = #{q.status}
+        </if>
+        <if test="q.auditStatus != null">
+            AND cr.audit_status = #{q.auditStatus}
+        </if>
+        <if test="q.keyword != null">
+            AND (u.username  LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR u.nickname LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR u.phone    LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR cr.real_name LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        <if test="q.startTime != null">
+            AND u.create_time &gt;= #{q.startTime}
+        </if>
+        <if test="q.endTime != null">
+            AND u.create_time &lt;= #{q.endTime}
+        </if>
+        ORDER BY u.create_time DESC, u.id DESC
+    </select>
+
+    <!--
+      按天注册量
+      只返回「有注册的日期」—— 缺口由服务层补齐。
+      理由与匠人看板的趋势图完全一样：如果直接把结果丢给前端，
+      没有注册的那几天会在折线图上「消失」，日期轴被压缩成一个不连续的序列。
+      让 SQL 生成连续日期要么递归 CTE 要么建日历表，为一张图不值得。
+    -->
+    <select id="selectRegisterDayTrend" resultType="java.util.Map">
+        SELECT DATE_FORMAT(create_time, '%Y-%m-%d') AS statDay,
+               COUNT(*)                             AS cnt
+        FROM `user`
+        WHERE deleted = 0
+          AND create_time &gt;= #{start}
+        GROUP BY statDay
+        ORDER BY statDay
+    </select>
+
+    <!-- 按月注册量：窗口一般跨 6 个月，缺口同样由服务层补 -->
+    <select id="selectRegisterMonthTrend" resultType="java.util.Map">
+        SELECT DATE_FORMAT(create_time, '%Y-%m') AS statMonth,
+               COUNT(*)                          AS cnt
+        FROM `user`
+        WHERE deleted = 0
+          AND create_time &gt;= #{start}
+        GROUP BY statMonth
+        ORDER BY statMonth
+    </select>
+
+    <!--
+      角色分布
+      饼图的数据源。管理员账号也计入 —— 如果不计，
+      「角色分布之和」就对不上「累计注册数」，验收时自己查 SQL 会发现两个数字打架。
+      这和 6.26 校准优惠券领取数是同一个道理：能在同一张图上一起出现的数据，
+      彼此的合计关系必须是成立的。
+    -->
+    <select id="selectRoleCounts" resultType="java.util.Map">
+        SELECT role, COUNT(*) AS cnt
+        FROM `user`
+        WHERE deleted = 0
+        GROUP BY role
+        ORDER BY role
+    </select>
+
+</mapper>

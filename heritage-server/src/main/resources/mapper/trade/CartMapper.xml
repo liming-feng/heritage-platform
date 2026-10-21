@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.trade.mapper.CartMapper">
+
+    <!--
+      购物车列表：购物车不存商品快照，展示的必须是**实时**名称/封面/价格/库存。
+      规格价优先于商品价；规格库存与商品库存同时返回，前端可据此提示"仅剩 N 件"。
+      失效标记 invalid 用于前端置灰：商品下架 / 已删除 / 库存不足。
+    -->
+    <sql id="cartColumns">
+        c.id            AS id,
+        c.goods_id      AS goodsId,
+        c.spec_id       AS specId,
+        c.quantity      AS quantity,
+        c.checked       AS checked,
+        g.name          AS goodsName,
+        g.cover         AS cover,
+        g.status        AS goodsStatus,
+        g.craftsman_id  AS craftsmanId,
+        s.spec_name     AS specName,
+        IFNULL(s.price, g.price)                       AS price,
+        IFNULL(s.stock, g.stock)                       AS stock,
+        CASE
+            WHEN g.id IS NULL OR g.deleted = 1 THEN 1
+            WHEN g.status &lt;&gt; 1 OR g.audit_status &lt;&gt; 1 THEN 1
+            WHEN (CASE WHEN c.spec_id IS NULL THEN g.stock ELSE IFNULL(s.stock, 0) END) &lt; c.quantity THEN 1
+            ELSE 0
+        END AS invalid,
+        c.create_time   AS createTime
+    </sql>
+
+    <select id="selectCartList" resultType="com.lmf.heritage.module.trade.vo.CartItemVO">
+        SELECT
+        <include refid="cartColumns"/>
+        FROM cart c
+        LEFT JOIN goods g      ON g.id = c.goods_id
+        LEFT JOIN goods_spec s ON s.id = c.spec_id AND s.deleted = 0
+        WHERE c.deleted = 0 AND c.user_id = #{userId}
+        ORDER BY c.update_time DESC, c.id DESC
+    </select>
+
+    <select id="selectByIdsAndUser" resultType="com.lmf.heritage.module.trade.vo.CartItemVO">
+        SELECT
+        <include refid="cartColumns"/>
+        FROM cart c
+        LEFT JOIN goods g      ON g.id = c.goods_id
+        LEFT JOIN goods_spec s ON s.id = c.spec_id AND s.deleted = 0
+        WHERE c.deleted = 0 AND c.user_id = #{userId}
+        AND c.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY c.id
+    </select>
+
+    <update id="updateChecked">
+        UPDATE cart SET checked = #{checked}, update_time = NOW()
+        WHERE deleted = 0 AND user_id = #{userId}
+        <choose>
+            <when test="ids != null and ids.size() > 0">
+                AND id IN
+                <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <!-- ids 为空表示"全选/全不选"，不加 id 条件 -->
+            <otherwise>
+                AND 1 = 1
+            </otherwise>
+        </choose>
+    </update>
+
+    <update id="deleteChecked">
+        UPDATE cart SET deleted = 1, update_time = NOW()
+        WHERE deleted = 0 AND user_id = #{userId} AND checked = 1
+    </update>
+
+</mapper>

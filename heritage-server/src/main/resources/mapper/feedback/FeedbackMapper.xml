@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.feedback.mapper.FeedbackMapper">
+
+    <!--
+      反馈分页：用户端（只看自己的）与管理端（看全部）共用一份 SQL，
+      区别只在 userId 传不传 —— 这样两端的字段与排序永远一致。
+      LEFT JOIN `user` 是为了管理端能看到「谁提的」，匿名反馈也不会因为 JOIN 而丢行。
+    -->
+    <select id="selectFeedbackPage" resultType="com.lmf.heritage.module.feedback.vo.FeedbackVO">
+        SELECT
+            f.id,
+            f.user_id       AS userId,
+            f.type,
+            f.content,
+            f.contact,
+            f.reply,
+            f.status,
+            f.handle_time   AS handleTime,
+            f.create_time   AS createTime,
+            u.username      AS username,
+            u.nickname      AS nickname
+        FROM feedback f
+        LEFT JOIN `user` u ON u.id = f.user_id
+        WHERE f.deleted = 0
+        <if test="userId != null">
+            AND f.user_id = #{userId}
+        </if>
+        <if test="q.status != null">
+            AND f.status = #{q.status}
+        </if>
+        <if test="q.type != null">
+            AND f.type = #{q.type}
+        </if>
+        ORDER BY f.status ASC, f.id DESC
+    </select>
+
+</mapper>

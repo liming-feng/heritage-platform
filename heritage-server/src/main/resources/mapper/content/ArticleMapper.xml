@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.content.mapper.ArticleMapper">
+
+    <!--
+      列表统一列清单。
+      注意这里**不查 content**：富文本正文体积大，列表页用不到，
+      让它出现在结果集里会白白多传几百 KB。
+    -->
+    <sql id="listColumns">
+        a.id,
+        a.title,
+        a.cover,
+        a.summary,
+        a.author,
+        a.tags,
+        a.category_id     AS categoryId,
+        a.view_count      AS viewCount,
+        a.like_count      AS likeCount,
+        a.comment_count   AS commentCount,
+        a.is_top          AS isTop,
+        a.create_time     AS createTime,
+        c.name            AS categoryName
+    </sql>
+
+    <sql id="listJoins">
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id
+    </sql>
+
+    <!--
+      资讯分页查询。
+      「草稿 / 已下架」在 SQL 层就挡掉（status = 1），
+      不依赖调用方记得加这个条件。
+    -->
+    <select id="selectArticlePage" resultType="com.lmf.heritage.module.content.vo.ArticleListVO">
+        SELECT
+        <include refid="listColumns"/>
+        <include refid="listJoins"/>
+        WHERE a.deleted = 0 AND a.status = 1
+        <if test="q.categoryId != null">
+            AND a.category_id = #{q.categoryId}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (
+                a.title   LIKE CONCAT('%', #{q.keyword}, '%')
+                OR a.summary LIKE CONCAT('%', #{q.keyword}, '%')
+                OR a.author  LIKE CONCAT('%', #{q.keyword}, '%')
+            )
+        </if>
+        <if test="q.tag != null and q.tag != ''">
+            AND a.tags LIKE CONCAT('%', #{q.tag}, '%')
+        </if>
+        <choose>
+            <when test="q.sort == 'hot'">
+                ORDER BY a.view_count DESC, a.id DESC
+            </when>
+            <otherwise>
+                ORDER BY a.is_top DESC, a.id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 相关推荐：同分类，排除自己，按热度取若干条 -->
+    <select id="selectRelated" resultType="com.lmf.heritage.module.content.vo.ArticleListVO">
+        SELECT
+        <include refid="listColumns"/>
+        <include refid="listJoins"/>
+        WHERE a.deleted = 0 AND a.status = 1
+        AND a.id &lt;&gt; #{id}
+        AND a.category_id = #{categoryId}
+        ORDER BY a.view_count DESC, a.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!--
+      管理端资讯分页。
+      与用户端最大的区别是**不过滤 status**：草稿与已下架的资讯必须出现在后台，
+      否则管理员写完保存后就再也找不到那篇稿子了。
+      排序固定让置顶的排在最前 —— 置顶是运营手动指定的优先级，
+      它应该压过「最新发布」这个默认顺序。
+    -->
+    <select id="selectAdminArticlePage" resultType="com.lmf.heritage.module.content.vo.AdminArticleVO">
+        SELECT
+            a.id,
+            a.title,
+            a.cover,
+            a.summary,
+            a.author,
+            a.tags,
+            a.category_id     AS categoryId,
+            a.view_count      AS viewCount,
+            a.like_count      AS likeCount,
+            a.comment_count   AS commentCount,
+            a.is_top          AS isTop,
+            a.status,
+            a.create_time     AS createTime,
+            a.update_time     AS updateTime,
+            c.name            AS categoryName
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id
+        WHERE a.deleted = 0
+        <if test="q.categoryId != null">
+            AND a.category_id = #{q.categoryId}
+        </if>
+        <if test="q.status != null">
+            AND a.status = #{q.status}
+        </if>
+        <if test="q.isTop != null">
+            AND a.is_top = #{q.isTop}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (
+                a.title   LIKE CONCAT('%', #{q.keyword}, '%')
+                OR a.summary LIKE CONCAT('%', #{q.keyword}, '%')
+                OR a.author  LIKE CONCAT('%', #{q.keyword}, '%')
+            )
+        </if>
+        <if test="q.startTime != null">
+            AND a.create_time &gt;= #{q.startTime}
+        </if>
+        <if test="q.endTime != null">
+            AND a.create_time &lt;= #{q.endTime}
+        </if>
+        <choose>
+            <when test="q.sort == 'view'">
+                ORDER BY a.view_count DESC, a.id DESC
+            </when>
+            <when test="q.sort == 'like'">
+                ORDER BY a.like_count DESC, a.id DESC
+            </when>
+            <when test="q.sort == 'comment'">
+                ORDER BY a.comment_count DESC, a.id DESC
+            </when>
+            <otherwise>
+                ORDER BY a.is_top DESC, a.create_time DESC, a.id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 管理端详情：与列表同一套字段 + 正文 -->
+    <select id="selectAdminArticleDetail" resultType="com.lmf.heritage.module.content.vo.AdminArticleDetailVO">
+        SELECT
+            a.id,
+            a.title,
+            a.cover,
+            a.summary,
+            a.author,
+            a.tags,
+            a.content,
+            a.category_id     AS categoryId,
+            a.view_count      AS viewCount,
+            a.like_count      AS likeCount,
+            a.comment_count   AS commentCount,
+            a.is_top          AS isTop,
+            a.status,
+            a.create_time     AS createTime,
+            a.update_time     AS updateTime,
+            c.name            AS categoryName
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id
+        WHERE a.deleted = 0 AND a.id = #{id}
+    </select>
+
+    <!-- 分类下内容不足时补齐用：全站热门，排除已选中的 id -->
+    <select id="selectHotExcluding" resultType="com.lmf.heritage.module.content.vo.ArticleListVO">
+        SELECT
+        <include refid="listColumns"/>
+        <include refid="listJoins"/>
+        WHERE a.deleted = 0 AND a.status = 1
+        <if test="excludeIds != null and excludeIds.size() &gt; 0">
+            AND a.id NOT IN
+            <foreach collection="excludeIds" item="eid" open="(" separator="," close=")">
+                #{eid}
+            </foreach>
+        </if>
+        ORDER BY a.view_count DESC, a.id DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

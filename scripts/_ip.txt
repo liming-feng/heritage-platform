@@ -1,0 +1,126 @@
+# doc_insert_paragraph
+
+在指定 idx 处插入一个「段落分隔符」（paragraph break），并对「该分隔符之前的文本」应用段落级样式。⚠️ 本接口不写入任何文本内容，仅修饰段落属性。⚠️ 这是拆分当前段落的底层接口：idx 之后的段落会保留原段落属性。在编号段末尾调用会得到一个继续编号的空段；不要用本接口创建独立的普通空段，应使用 `doc_insert_paragraph_with_text(idx=段落end_index, text="", type=0)`。
+🔗 相关接口：
+  - 「插入带文本的标题/编号段落」请使用 `doc_insert_paragraph_with_text`（一步完成、原子写入）
+  - 「只写入纯文本」请使用 `doc_insert_text`
+  - 「批量插入富文本（包含多级标题 / 表格 / 样式）」请使用 `doc_insert_html_content`
+  - 「改变现有段落的行距 / 缩进 / 对齐」请使用 `doc_modify_paragraph` / `doc_update_line_spacing`
+典型两步式用法：
+  1. doc_insert_text(idx=N, text="一级标题")            → 写入文本
+  2. doc_insert_paragraph(idx=N+len, level=1)        → 把上述文本所在段落标为 H1
+语义：idx 指向「已有文本的末尾」，分隔符插在 idx 处后；前一个段落（即刚写入的文本）继承本次设置的 level/type/numbering_lvl 等属性；idx 之后的部分作为下一个段落。idx 必须是 DOC 坐标，可使用查询结果或写操作返回值；不要传 paragraph_index 或手算字符数。
+
+参数（✓=必填）：
+  [✓] idx (integer): 段落分隔符的插入位置（DOC 坐标）。来自查询结果或写操作返回值；不是段落序号。
+  [ ] file_id (string): The file_id of the editor to operate on
+  [ ] indent_count (integer): 编号前的缩进空格数；仅在 type 为 1/2（带项目符号 / 数字编号）时生效，普通段落传了不会生效。该值会随当前编号项一起渲染（与所选 numbering_lvl 一致），但不会作为段落自身的缩进字段返回；doc_get_paragraph_property 的 indent 字段不包含该值。
+  [ ] level (): 标题级别：0=普通段落（非标题），1~9=Heading1~Heading9。为保持向后兼容，同时接受整数（推荐）与数字字符串 '0'..'9'。
+  [ ] numbering_lvl (): 编号级别（1~9，对应 1~9 级编号）。同时接受整数（推荐）与数字字符串。
+  [ ] type (): 编号类别（默认 0，无编号）。同时接受整数（推荐）与数字字符串。
+        0=无编号
+        1=圆点项目符号 ●
+        2=数字编号 1、（中文逗号样式）
+        3=待办事项（仅 1 级）
+        4=数字编号 1.（有序列表常用）
+        5=箭头项目符号 ➢
+        6=空心圆项目符号 ○
+        7=多级数字编号 1./1.1./1.1.1.
+        8=中文数字编号 一、/1、/a)
+        9=大写字母编号 A./a./i.
+
+--- raw inputSchema ---
+{
+  "properties": {
+    "file_id": {
+      "description": "The file_id of the editor to operate on",
+      "type": "string"
+    },
+    "idx": {
+      "description": "段落分隔符的插入位置（DOC 坐标）。来自查询结果或写操作返回值；不是段落序号。",
+      "type": "integer"
+    },
+    "indent_count": {
+      "description": "编号前的缩进空格数；仅在 type 为 1/2（带项目符号 / 数字编号）时生效，普通段落传了不会生效。该值会随当前编号项一起渲染（与所选 numbering_lvl 一致），但不会作为段落自身的缩进字段返回；doc_get_paragraph_property 的 indent 字段不包含该值。",
+      "type": "integer"
+    },
+    "level": {
+      "description": "标题级别：0=普通段落（非标题），1~9=Heading1~Heading9。为保持向后兼容，同时接受整数（推荐）与数字字符串 '0'..'9'。",
+      "oneOf": [
+        {
+          "maximum": 9,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "enum": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "numbering_lvl": {
+      "description": "编号级别（1~9，对应 1~9 级编号）。同时接受整数（推荐）与数字字符串。",
+      "oneOf": [
+        {
+          "maximum": 9,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "enum": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "type": "string"
+        }
+      ]
+    },
+    "type": {
+      "description": "编号类别（默认 0，无编号）。同时接受整数（推荐）与数字字符串。\n  0=无编号\n  1=圆点项目符号 ●\n  2=数字编号 1、（中文逗号样式）\n  3=待办事项（仅 1 级）\n  4=数字编号 1.（有序列表常用）\n  5=箭头项目符号 ➢\n  6=空心圆项目符号 ○\n  7=多级数字编号 1./1.1./1.1.1.\n  8=中文数字编号 一、/1、/a)\n  9=大写字母编号 A./a./i.",
+      "oneOf": [
+        {
+          "maximum": 9,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "enum": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ],
+          "type": "string"
+        }
+      ]
+    }
+  },
+  "required": [
+    "idx"
+  ],
+  "type": "object"
+}

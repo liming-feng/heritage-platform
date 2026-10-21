@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.content.mapper.BannerMapper">
+
+    <!--
+      管理端轮播图分页。
+      position / status 都可以不传（表示全部）；停用的图同样返回，
+      后台要能把它重新打开 —— 只查启用项等于把开关做成了单向的。
+    -->
+    <select id="selectAdminBannerPage" resultType="com.lmf.heritage.module.content.vo.AdminBannerVO">
+        SELECT
+            b.id,
+            b.title,
+            b.image,
+            b.link_url    AS linkUrl,
+            b.position,
+            b.sort,
+            b.status,
+            b.create_time AS createTime,
+            b.update_time AS updateTime
+        FROM banner b
+        WHERE b.deleted = 0
+        <if test="q.position != null">
+            AND b.position = #{q.position}
+        </if>
+        <if test="q.status != null">
+            AND b.status = #{q.status}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (
+                b.title    LIKE CONCAT('%', #{q.keyword}, '%')
+                OR b.link_url LIKE CONCAT('%', #{q.keyword}, '%')
+            )
+        </if>
+        ORDER BY b.position ASC, b.sort ASC, b.id ASC
+    </select>
+
+</mapper>

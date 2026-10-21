@@ -1,0 +1,105 @@
+# doc_insert_table_rows
+
+批量在表格不同位置插入多行（DOC）。通过 table_id 或 idx 定位表格（优先 table_id）。所有 anchor_row 基于**原始表格**（调用前的状态），调用方不需要跟踪插入后的行号漂移。handler 内部按 anchor_row 降序处理（先插下面的再插上面的），保证互不干扰。可选 cells 数组为新增行写入内容，用 (insert_index, row_offset, col) 定位，不依赖最终行号。每个插入点可设置 default_cell_format 作为默认样式，cells 中未指定的字段继承默认值，减少 token 消耗。
+
+参数（✓=必填）：
+  [✓] row_inserts (array<object>): 插入点数组。每个元素指定一个位置和数量。anchor_row 基于**原始表格**的行号。
+  [ ] cells (array<object>): 可选：为新增行写入内容。每个 cell 用 (insert_index, row_offset, col) 定位。insert_index 对应 row_inserts 下标，row_offset 是相对于该插入点第一行新行的偏移。字段格式同 doc_set_table_cells 的 cells（text/text_format/property/horizontal_align）。
+  [ ] file_id (string): The file_id of the editor to operate on
+  [ ] idx (integer): 表格内任意 cell 的 DOC 坐标（table_id 未提供时使用）
+  [ ] table_id (string): 表格唯一标识（8 字符字符串），优先使用。与 idx 二选一提供即可。
+
+--- raw inputSchema ---
+{
+  "properties": {
+    "cells": {
+      "description": "可选：为新增行写入内容。每个 cell 用 (insert_index, row_offset, col) 定位。insert_index 对应 row_inserts 下标，row_offset 是相对于该插入点第一行新行的偏移。字段格式同 doc_set_table_cells 的 cells（text/text_format/property/horizontal_align）。",
+      "items": {
+        "properties": {
+          "col": {
+            "description": "行插入时必填：1-based 列号，指定该 cell 在哪一列。与 row_offset 配合定位行插入的 cell",
+            "type": "integer"
+          },
+          "col_offset": {
+            "description": "列插入时用：相对于该插入点第一列新列的偏移（0-based）。与 insert_index 配合定位列",
+            "type": "integer"
+          },
+          "horizontal_align": {
+            "description": "段落水平对齐：left/center/right/both",
+            "type": "string"
+          },
+          "insert_index": {
+            "description": "对应 row_inserts / col_inserts 数组的下标（0-based），指定该 cell 属于哪个插入点",
+            "type": "integer"
+          },
+          "property": {
+            "description": "单元格属性（background_color/borders 等），同 doc_set_table_cells",
+            "type": "object"
+          },
+          "row": {
+            "description": "列插入时必填：1-based 行号，指定该 cell 在哪一行。与 col_offset 配合定位列插入的 cell",
+            "type": "integer"
+          },
+          "row_offset": {
+            "description": "行插入时用：相对于该插入点第一行新行的偏移（0-based）。与 insert_index 配合定位行",
+            "type": "integer"
+          },
+          "text": {
+            "description": "可选。不传=不填文本；传非空=写入该文本。",
+            "type": "string"
+          },
+          "text_format": {
+            "description": "文本格式（bold/color/font_size 等），同 doc_set_table_cells",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "file_id": {
+      "description": "The file_id of the editor to operate on",
+      "type": "string"
+    },
+    "idx": {
+      "description": "表格内任意 cell 的 DOC 坐标（table_id 未提供时使用）",
+      "type": "integer"
+    },
+    "row_inserts": {
+      "description": "插入点数组。每个元素指定一个位置和数量。anchor_row 基于**原始表格**的行号。",
+      "items": {
+        "properties": {
+          "anchor_row": {
+            "description": "1-based 行号（基于原始表格），新行克隆该行样式。范围 [1, row_count]",
+            "type": "integer"
+          },
+          "count": {
+            "description": "插入几行（默认 1）。同一插入点重复克隆 anchor_row 样式",
+            "type": "integer"
+          },
+          "default_cell_format": {
+            "description": "插入点级默认样式。cells 数组中未指定的字段会继承此默认值，避免每个 cell 重复写 property/text_format/horizontal_align。字段格式同 doc_set_table_cells 的 cell（property/text_format/horizontal_align）。cell 级字段覆盖默认值。",
+            "type": "object"
+          },
+          "insert_below": {
+            "description": "true=在该行下方插入（默认），false=在该行上方插入",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "anchor_row"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "table_id": {
+      "description": "表格唯一标识（8 字符字符串），优先使用。与 idx 二选一提供即可。",
+      "type": "string"
+    }
+  },
+  "required": [
+    "row_inserts"
+  ],
+  "type": "object"
+}

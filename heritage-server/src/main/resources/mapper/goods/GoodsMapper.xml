@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.goods.mapper.GoodsMapper">
+
+    <!--
+      前台商品列表：商品 + 分类名 + 匠人名 + 评价统计。
+      评价统计走一个预聚合的子查询再 LEFT JOIN，避免在 SELECT 里逐行跑两个标量子查询。
+      评价只统计 type = 1（商品评价）。
+    -->
+    <sql id="goodsListColumns">
+        g.id,
+        g.name,
+        g.subtitle,
+        g.cover,
+        g.price,
+        g.original_price,
+        g.stock,
+        g.sales,
+        g.is_handmade,
+        g.category_id,
+        g.craftsman_id,
+        c.name               AS category_name,
+        cs.real_name         AS craftsman_name,
+        cs.craft_type        AS craft_type,
+        rv.rating_avg        AS rating_avg,
+        rv.review_count      AS review_count
+    </sql>
+
+    <select id="selectGoodsPage" resultType="com.lmf.heritage.module.goods.vo.GoodsListVO">
+        SELECT
+        <include refid="goodsListColumns"/>
+        FROM goods g
+        LEFT JOIN category c ON c.id = g.category_id AND c.deleted = 0
+        LEFT JOIN craftsman cs ON cs.id = g.craftsman_id AND cs.deleted = 0
+        LEFT JOIN (
+        SELECT target_id,
+        ROUND(AVG(rating), 1) AS rating_avg,
+        COUNT(*)              AS review_count
+        FROM review
+        WHERE type = 1 AND deleted = 0
+        GROUP BY target_id
+        ) rv ON rv.target_id = g.id
+        <where>
+            g.deleted = 0
+            AND g.status = 1
+            AND g.audit_status = 1
+            <if test="q.categoryId != null">
+                AND g.category_id = #{q.categoryId}
+            </if>
+            <if test="q.craftsmanId != null">
+                AND g.craftsman_id = #{q.craftsmanId}
+            </if>
+            <if test="q.isHandmade != null">
+                AND g.is_handmade = #{q.isHandmade}
+            </if>
+            <if test="q.minPrice != null">
+                AND g.price &gt;= #{q.minPrice}
+            </if>
+            <if test="q.maxPrice != null">
+                AND g.price &lt;= #{q.maxPrice}
+            </if>
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (
+                g.name LIKE CONCAT('%', #{q.keyword}, '%')
+                OR g.subtitle LIKE CONCAT('%', #{q.keyword}, '%')
+                OR g.description LIKE CONCAT('%', #{q.keyword}, '%')
+                )
+            </if>
+        </where>
+        <!-- 排序走白名单分支，参数值不拼进 SQL，不存在注入风险 -->
+        <choose>
+            <when test="q.sort == 'sales'">
+                ORDER BY g.sales DESC, g.id DESC
+            </when>
+            <when test="q.sort == 'price_asc'">
+                ORDER BY g.price ASC, g.id DESC
+            </when>
+            <when test="q.sort == 'price_desc'">
+                ORDER BY g.price DESC, g.id DESC
+            </when>
+            <when test="q.sort == 'new'">
+                ORDER BY g.create_time DESC, g.id DESC
+            </when>
+            <otherwise>
+                ORDER BY g.sales DESC, g.view_count DESC, g.id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 定时任务把 Redis 累计的浏览量增量刷回 MySQL -->
+    <update id="addViewCount">
+        UPDATE goods
+        SET view_count  = view_count + #{delta},
+            update_time = NOW()
+        WHERE id = #{id}
+          AND deleted = 0
+    </update>
+
+    <!--
+      匠人端商品列表。
+      刻意不加 status / audit_status 的固定过滤（前台列表才加），
+      因为匠人需要看到自己全部状态的作品；筛选完全由传入条件决定。
+      craftsman_id = #{craftsmanId} 是横向隔离的落点：越权在 SQL 层就被挡住。
+    -->
+    <select id="selectCraftsmanGoodsPage" resultType="com.lmf.heritage.module.goods.vo.CraftsmanGoodsVO">
+        SELECT
+        g.id,
+        g.name,
+        g.subtitle,
+        g.cover,
+        g.price,
+        g.original_price,
+        g.stock,
+        g.sales,
+        g.view_count,
+        g.is_handmade,
+        g.status,
+        g.audit_status,
+        g.reject_reason,
+        g.category_id,
+        g.create_time,
+        g.update_time,
+        c.name          AS category_name,
+        rv.rating_avg   AS rating_avg,
+        rv.review_count AS review_count
+        FROM goods g
+        LEFT JOIN category c ON c.id = g.category_id AND c.deleted = 0
+        LEFT JOIN (
+        SELECT target_id,
+        ROUND(AVG(rating), 1) AS rating_avg,
+        COUNT(*)              AS review_count
+        FROM review
+        WHERE type = 1 AND deleted = 0
+        GROUP BY target_id
+        ) rv ON rv.target_id = g.id
+        <where>
+            g.deleted = 0
+            AND g.craftsman_id = #{craftsmanId}
+            <if test="q.status != null">
+                AND g.status = #{q.status}
+            </if>
+            <if test="q.auditStatus != null">
+                AND g.audit_status = #{q.auditStatus}
+            </if>
+            <if test="q.categoryId != null">
+                AND g.category_id = #{q.categoryId}
+            </if>
+            <if test="q.stockWarn != null and q.stockWarn">
+                AND g.status = 1
+                AND g.audit_status = 1
+                AND g.stock &lt;= #{q.stockWarnThreshold}
+            </if>
+            <if test="q.keyword != null and q.keyword != ''">
+                AND (
+                g.name LIKE CONCAT('%', #{q.keyword}, '%')
+                OR g.subtitle LIKE CONCAT('%', #{q.keyword}, '%')
+                )
+            </if>
+        </where>
+        <!-- 排序白名单分支，参数值不拼进 SQL -->
+        <choose>
+            <when test="q.sort == 'sales'">
+                ORDER BY g.sales DESC, g.id DESC
+            </when>
+            <when test="q.sort == 'stock'">
+                ORDER BY g.stock ASC, g.id DESC
+            </when>
+            <when test="q.sort == 'view'">
+                ORDER BY g.view_count DESC, g.id DESC
+            </when>
+            <otherwise>
+                ORDER BY g.id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 库存预警：在售 + 审核通过 + 库存低于阈值 -->
+    <select id="selectStockWarn" resultType="com.lmf.heritage.module.goods.vo.GoodsStockWarnVO">
+        SELECT
+        g.id,
+        g.name,
+        g.cover,
+        g.stock,
+        g.price,
+        g.sales,
+        c.name AS category_name
+        FROM goods g
+        LEFT JOIN category c ON c.id = g.category_id AND c.deleted = 0
+        WHERE g.deleted = 0
+          AND g.craftsman_id = #{craftsmanId}
+          AND g.status = 1
+          AND g.audit_status = 1
+          AND g.stock &lt;= #{threshold}
+        ORDER BY g.stock ASC, g.sales DESC
+    </select>
+
+    <!--
+      批量上下架。
+      AND audit_status = 1 放在 UPDATE 的 WHERE 里：审核未通过的商品不可能被这一步上架，
+      规则由单条语句自己保证，不依赖调用方是否记得先校验。
+    -->
+    <update id="batchUpdateShelf">
+        UPDATE goods
+        SET status = #{status},
+        update_time = NOW()
+        WHERE deleted = 0
+        AND craftsman_id = #{craftsmanId}
+        AND audit_status = 1
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!--
+      管理端商品列表
+      ============================================================================
+      与前台 / 匠人端列表的三处结构性差异：
+
+      ① 双 LEFT JOIN 而不是只 JOIN 分类：
+         goods 里可能有 craftsman_id 指向已逻辑删除的匠人（匠人注销但作品留档）。
+         用 INNER JOIN 这些商品会直接从审核列表里消失 —— 而它们恰恰是管理员
+         最需要看到的东西（有历史订单的商品不能跟着匠人一起消失）。
+
+      ② 评价统计用预聚合子查询：
+         列表每行都要显示评分与评价数，标量子查询会退化成 N+1。
+
+      ③ 排序默认 create_time DESC：
+         审核队列关心「最近提交了什么」。这跟匠人列表「待审优先 + 先到先审」
+         不同 —— 商品的审核量大、时效性强，课程/匠人则是审批制。
+    -->
+    <select id="selectAdminGoodsPage" resultType="com.lmf.heritage.module.goods.vo.AdminGoodsVO">
+        SELECT
+        g.id,
+        g.name,
+        g.subtitle,
+        g.cover,
+        g.price,
+        g.original_price,
+        g.stock,
+        g.sales,
+        g.view_count,
+        g.is_handmade,
+        g.status,
+        g.audit_status,
+        g.reject_reason,
+        g.category_id,
+        g.craftsman_id,
+        g.create_time,
+        g.update_time,
+        c.name            AS category_name,
+        cr.real_name      AS craftsman_name,
+        cr.craft_type     AS craft_type,
+        rv.rating_avg     AS rating_avg,
+        rv.review_count   AS review_count
+        FROM goods g
+        LEFT JOIN category c ON c.id = g.category_id AND c.deleted = 0
+        LEFT JOIN craftsman cr ON cr.id = g.craftsman_id AND cr.deleted = 0
+        LEFT JOIN (
+        SELECT target_id,
+        ROUND(AVG(rating), 1) AS rating_avg,
+        COUNT(*)              AS review_count
+        FROM review
+        WHERE type = 1 AND deleted = 0
+        GROUP BY target_id
+        ) rv ON rv.target_id = g.id
+        <where>
+            g.deleted = 0
+            <if test="q.status != null">
+                AND g.status = #{q.status}
+            </if>
+            <if test="q.auditStatus != null">
+                AND g.audit_status = #{q.auditStatus}
+            </if>
+            <if test="q.categoryId != null">
+                AND g.category_id = #{q.categoryId}
+            </if>
+            <if test="q.craftsmanId != null">
+                AND g.craftsman_id = #{q.craftsmanId}
+            </if>
+            <if test="q.minPrice != null">
+                AND g.price &gt;= #{q.minPrice}
+            </if>
+            <if test="q.maxPrice != null">
+                AND g.price &lt;= #{q.maxPrice}
+            </if>
+            <if test="q.keyword != null">
+                AND (g.name LIKE CONCAT('%', #{q.keyword}, '%')
+                OR g.subtitle LIKE CONCAT('%', #{q.keyword}, '%')
+                OR cr.real_name LIKE CONCAT('%', #{q.keyword}, '%'))
+            </if>
+            <if test="q.startTime != null">
+                AND g.create_time &gt;= #{q.startTime}
+            </if>
+            <if test="q.endTime != null">
+                AND g.create_time &lt;= #{q.endTime}
+            </if>
+        </where>
+        <choose>
+            <when test="q.sort == 'sales'">
+                ORDER BY g.sales DESC, g.id DESC
+            </when>
+            <when test="q.sort == 'stock'">
+                ORDER BY g.stock ASC, g.id DESC
+            </when>
+            <when test="q.sort == 'price'">
+                ORDER BY g.price DESC, g.id DESC
+            </when>
+            <when test="q.sort == 'view'">
+                ORDER BY g.view_count DESC, g.id DESC
+            </when>
+            <otherwise>
+                ORDER BY g.create_time DESC, g.id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <!-- 管理端商品审核详情：多带匠人联系方式，供审核沟通 -->
+    <select id="selectAdminGoodsDetail" resultType="com.lmf.heritage.module.goods.vo.AdminGoodsDetailVO">
+        SELECT
+        g.id,
+        g.name,
+        g.subtitle,
+        g.cover,
+        g.description,
+        g.detail,
+        g.price,
+        g.original_price,
+        g.stock,
+        g.sales,
+        g.view_count,
+        g.is_handmade,
+        g.status,
+        g.audit_status,
+        g.reject_reason,
+        g.category_id,
+        g.craftsman_id,
+        g.create_time,
+        g.update_time,
+        c.name        AS category_name,
+        cr.real_name  AS craftsman_name,
+        cr.craft_type AS craft_type,
+        u.phone       AS craftsman_phone,
+        rv.rating_avg   AS rating_avg,
+        rv.review_count AS review_count
+        FROM goods g
+        LEFT JOIN category c ON c.id = g.category_id AND c.deleted = 0
+        LEFT JOIN craftsman cr ON cr.id = g.craftsman_id AND cr.deleted = 0
+        LEFT JOIN `user` u ON u.id = cr.user_id AND u.deleted = 0
+        LEFT JOIN (
+        SELECT target_id,
+        ROUND(AVG(rating), 1) AS rating_avg,
+        COUNT(*)              AS review_count
+        FROM review
+        WHERE type = 1 AND deleted = 0
+        GROUP BY target_id
+        ) rv ON rv.target_id = g.id
+        WHERE g.deleted = 0
+        AND g.id = #{id}
+    </select>
+
+    <!--
+      审核状态流转（通过 / 驳回 / 违规下架共用）
+      AND audit_status = #{fromAuditStatus} 是并发护栏：
+      两个管理员同时点审核，只有先到的那次能改到行，后到的返回 0 行并抛异常回滚。
+      reject_reason 通过参数传入 —— 通过时传空串把上一轮的驳回原因清掉，
+      否则「审核通过但页面上还挂着一句驳回理由」。
+    -->
+    <update id="updateAuditByIds">
+        UPDATE goods
+        SET audit_status = #{auditStatus},
+        status = #{status},
+        reject_reason = #{rejectReason},
+        update_time = NOW()
+        WHERE deleted = 0
+        AND audit_status = #{fromAuditStatus}
+        AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>

@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.dashboard.mapper.DashboardMapper">
+
+    <!--
+      ==================================================================
+       两个「口径」片段：看板十来个数字全靠它们保持一致
+      ==================================================================
+      把口径抽成片段的理由很直接——看板最容易出的错不是算错，而是
+      「概览卡片的销售额」和「趋势图的销售额」用了不同的状态集合，
+      于是同一份数据在两个地方对不上，验收时怎么查都查不出是谁错。
+      这里让它们物理上只有一份定义，改一处全局生效。
+    -->
+
+    <!-- 已支付订单：待发货 / 待收货 / 已完成。
+         待付款(0) 钱没到账；已退款(4) 已取消(5) 要退钱，都不算销售额。 -->
+    <sql id="paidOrderStatus">1,2,3</sql>
+
+    <!-- 占用名额的预约：待审核 / 已通过 / 已核销 / 已完成。
+         已拒绝(2) 与已取消(3) 都已归还名额，不占座。
+         与 schema.sql 里种子数据的自洽规则（remain_quota = total_quota − Σ占用名额）完全一致。 -->
+    <sql id="occupiedBookingStatus">0,1,4,5</sql>
+
+    <!--
+      概览卡片
+      五个标量子查询一次取回，避免看板首屏打 5 个接口。
+      每条子查询都各自带 craftsman_id，越权在这里就被挡掉。
+      pay_time 用左闭右开 [start, end)：既不会漏掉月末 23:59 之后那几毫秒，
+      也不会把下月 0 点的第一单算进来。
+    -->
+    <select id="selectOverview" resultType="java.util.Map">
+        SELECT
+        (SELECT IFNULL(SUM(o1.pay_amount), 0) FROM orders o1
+        WHERE o1.deleted = 0 AND o1.craftsman_id = #{craftsmanId}
+        AND o1.status IN (<include refid="paidOrderStatus"/>)
+        AND o1.pay_time &gt;= #{start} AND o1.pay_time &lt; #{end}
+        ) AS salesAmount,
+
+        (SELECT COUNT(*) FROM orders o2
+        WHERE o2.deleted = 0 AND o2.craftsman_id = #{craftsmanId}
+        AND o2.status IN (<include refid="paidOrderStatus"/>)
+        AND o2.pay_time &gt;= #{start} AND o2.pay_time &lt; #{end}
+        ) AS orderCount,
+
+        (SELECT IFNULL(SUM(o3.pay_amount), 0) FROM orders o3
+        WHERE o3.deleted = 0 AND o3.craftsman_id = #{craftsmanId}
+        AND o3.status IN (<include refid="paidOrderStatus"/>)
+        AND o3.pay_time &gt;= #{lastStart} AND o3.pay_time &lt; #{lastEnd}
+        ) AS lastMonthAmount,
+
+        (SELECT IFNULL(SUM(b1.quota), 0) FROM booking b1
+        WHERE b1.deleted = 0 AND b1.craftsman_id = #{craftsmanId}
+        AND b1.status IN (<include refid="occupiedBookingStatus"/>)
+        AND b1.create_time &gt;= #{start} AND b1.create_time &lt; #{end}
+        ) AS bookingPeople,
+
+        (SELECT IFNULL(SUM(g1.view_count), 0) FROM goods g1
+        WHERE g1.deleted = 0 AND g1.craftsman_id = #{craftsmanId}
+        ) AS goodsViewTotal
+    </select>
+
+    <!--
+      逐日销售汇总
+      只返回「有订单的日期」，缺失的日期由服务层补 0 —— 让 SQL 生成连续日期序列
+      要么递归 CTE、要么建日历表，为了一张折线图不值得；
+      而如果直接把这批结果丢给前端，13 日的点会连到 15 日，图上凭空少一天。
+      所以补零这件事放在服务层做，这里只管老老实实汇总。
+    -->
+    <select id="selectSalesTrend" resultType="java.util.Map">
+        SELECT DATE_FORMAT(o.pay_time, '%Y-%m-%d') AS stat_day,
+        IFNULL(SUM(o.pay_amount), 0)            AS amount,
+        COUNT(*)                                AS cnt
+        FROM orders o
+        WHERE o.deleted = 0
+        AND o.craftsman_id = #{craftsmanId}
+        AND o.status IN (<include refid="paidOrderStatus"/>)
+        AND o.pay_time &gt;= #{start} AND o.pay_time &lt; #{end}
+        GROUP BY stat_day
+        ORDER BY stat_day
+    </select>
+
+    <!--
+      商品销量 Top N
+      goods_name / goods_image 取 order_item 里的下单快照：与订单详情页看到的完全一致，
+      商品改名改图也不会让历史榜单跟着变。
+      同一个商品可能在不同的订单里有不同的快照（改过名），用 MAX 收敛成一行，
+      保证柱状图上不会出现两个同 id 的柱子。
+      商品侧（库存、现价、累计销量、分类）用 LEFT JOIN 现取 —— 商品被删掉时这些字段为 null，
+      但「它曾经卖出过多少」这个事实不该消失，所以主表仍然是 order_item。
+    -->
+    <select id="selectGoodsSalesTop" resultType="com.lmf.heritage.module.dashboard.vo.GoodsSalesTopVO">
+        SELECT
+        t.goodsId,
+        t.goodsName,
+        t.goodsImage,
+        t.salesQty,
+        t.salesAmount,
+        g.stock        AS stock,
+        g.price        AS price,
+        g.sales        AS totalSales,
+        c.name         AS categoryName
+        FROM (
+        SELECT i.goods_id              AS goodsId,
+        MAX(i.goods_name)       AS goodsName,
+        MAX(i.goods_image)      AS goodsImage,
+        SUM(i.quantity)         AS salesQty,
+        SUM(i.price * i.quantity) AS salesAmount
+        FROM order_item i
+        JOIN orders o ON o.id = i.order_id
+        WHERE o.deleted = 0
+        AND o.craftsman_id = #{craftsmanId}
+        AND o.status IN (<include refid="paidOrderStatus"/>)
+        AND o.pay_time &gt;= #{start} AND o.pay_time &lt; #{end}
+        GROUP BY i.goods_id
+        ) t
+        LEFT JOIN goods g     ON g.id = t.goodsId
+        LEFT JOIN category c  ON c.id = g.category_id AND c.deleted = 0
+        ORDER BY t.salesQty DESC, t.salesAmount DESC, t.goodsId ASC
+        LIMIT #{limit}
+    </select>
+
+    <!--
+      预约课程热度排行
+      排序以「占用名额」为主、「预约单数」为辅：只按单数排，
+      「一个人约 5 个座」和「五个人各约 1 个座」会并列，热度看反。
+      LEFT JOIN 是为了让「一门课一个人都没约」也出现在结果里（值为 0），
+      匠人才能看见哪些课是真的没人报。
+    -->
+    <select id="selectBookingCourseRank" resultType="com.lmf.heritage.module.dashboard.vo.BookingCourseRankVO">
+        SELECT
+        c.id                AS courseId,
+        c.title             AS courseTitle,
+        c.cover             AS courseCover,
+        c.start_time        AS startTime,
+        c.status            AS status,
+        c.total_quota       AS totalQuota,
+        c.remain_quota      AS remainQuota,
+        COUNT(b.id)         AS bookingCount,
+        IFNULL(SUM(b.quota), 0) AS bookingPeople
+        FROM course c
+        LEFT JOIN booking b
+        ON b.course_id = c.id
+        AND b.deleted = 0
+        AND b.status IN (<include refid="occupiedBookingStatus"/>)
+        WHERE c.deleted = 0
+        AND c.craftsman_id = #{craftsmanId}
+        GROUP BY c.id, c.title, c.cover, c.start_time, c.status, c.total_quota, c.remain_quota
+        ORDER BY bookingPeople DESC, bookingCount DESC, c.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <!--
+      预约专属指标
+      前四个是「全部课程」口径的计数，后三个是「只看已结束课程」的核销口径。
+      核销率的分母为什么只用已结束课程：还没开课的课里那些「已通过未核销」是正常状态，
+      把它们当成未到场，核销率会被未来的课无理由地压低。
+      爽约率就是 100 − 核销率，所以这里不必再单独查一遍。
+    -->
+    <select id="selectBookingStat" resultType="java.util.Map">
+        SELECT
+        (SELECT IFNULL(SUM(CASE WHEN b.status = 0 THEN 1 ELSE 0 END), 0) FROM booking b
+        WHERE b.deleted = 0 AND b.craftsman_id = #{craftsmanId}) AS waitAudit,
+
+        (SELECT IFNULL(SUM(CASE WHEN b.status = 1 THEN 1 ELSE 0 END), 0) FROM booking b
+        WHERE b.deleted = 0 AND b.craftsman_id = #{craftsmanId}) AS passedUnchecked,
+
+        (SELECT IFNULL(SUM(CASE WHEN b.status IN (4,5) THEN 1 ELSE 0 END), 0) FROM booking b
+        WHERE b.deleted = 0 AND b.craftsman_id = #{craftsmanId}) AS checkedCount,
+
+        (SELECT IFNULL(SUM(CASE WHEN b.status IN (<include refid="occupiedBookingStatus"/>) THEN 1 ELSE 0 END), 0)
+        FROM booking b WHERE b.deleted = 0 AND b.craftsman_id = #{craftsmanId}) AS validCount,
+
+        (SELECT COUNT(*) FROM course c
+        WHERE c.deleted = 0 AND c.craftsman_id = #{craftsmanId} AND c.status = 2) AS endedCourseCount,
+
+        (SELECT IFNULL(SUM(b2.quota), 0) FROM booking b2
+        JOIN course c2 ON c2.id = b2.course_id AND c2.deleted = 0
+        WHERE b2.deleted = 0 AND b2.craftsman_id = #{craftsmanId}
+        AND c2.status = 2 AND b2.status IN (4,5)) AS checkinPeople,
+
+        (SELECT IFNULL(SUM(b3.quota), 0) FROM booking b3
+        JOIN course c3 ON c3.id = b3.course_id AND c3.deleted = 0
+        WHERE b3.deleted = 0 AND b3.craftsman_id = #{craftsmanId}
+        AND c3.status = 2 AND b3.status = 1) AS absentPeople
+    </select>
+
+    <!--
+      各课程名额使用率
+      usedQuota 由预约表现算（而不是取 total_quota − remain_quota），是为了交叉校验：
+      两者理论上必须相等，一旦某个「归还名额」的分支漏更新了 remain_quota，
+      这个字段就会和差值对不上，看板上直接露出来。
+      排序按「状态 → 开课时间」，与日历排期的顺序一致，两个页面看到的是同一个次序。
+    -->
+    <select id="selectCourseQuotaUsage" resultType="com.lmf.heritage.module.dashboard.vo.CourseQuotaVO">
+        SELECT
+        c.id            AS courseId,
+        c.title         AS courseTitle,
+        c.start_time    AS startTime,
+        c.status        AS status,
+        c.total_quota   AS totalQuota,
+        c.remain_quota  AS remainQuota,
+        IFNULL(SUM(CASE WHEN b.status IN (<include refid="occupiedBookingStatus"/>) THEN b.quota ELSE 0 END), 0)
+        AS usedQuota,
+        COUNT(CASE WHEN b.status IN (<include refid="occupiedBookingStatus"/>) THEN b.id END) AS bookingCount
+        FROM course c
+        LEFT JOIN booking b ON b.course_id = c.id AND b.deleted = 0
+        WHERE c.deleted = 0
+        AND c.craftsman_id = #{craftsmanId}
+        GROUP BY c.id, c.title, c.start_time, c.status, c.total_quota, c.remain_quota
+        ORDER BY c.status ASC, c.start_time ASC, c.id ASC
+    </select>
+
+    <!--
+      待办提醒
+      五项都写成标量子查询，且每项的条件与对应列表接口的过滤条件逐字一致，
+      所以「看板上的数字 = 点进列表的总条数」是结构上成立的，不需要人工对齐。
+      待回复评价要按 type 分流判断归属（商品评价看 goods、课程评价看 course），
+      理由与 ReviewMapper 里的匠人评价归属完全一样：评价表用 type + target_id 统一存储。
+    -->
+    <select id="selectTodo" resultType="java.util.Map">
+        SELECT
+        (SELECT COUNT(*) FROM orders o1
+        WHERE o1.deleted = 0 AND o1.craftsman_id = #{craftsmanId} AND o1.status = 1
+        ) AS waitDeliverOrders,
+
+        (SELECT COUNT(*) FROM booking b1
+        WHERE b1.deleted = 0 AND b1.craftsman_id = #{craftsmanId} AND b1.status = 0
+        ) AS waitAuditBookings,
+
+        (SELECT COUNT(*) FROM orders o2
+        WHERE o2.deleted = 0 AND o2.craftsman_id = #{craftsmanId} AND o2.refund_status = 1
+        ) AS applyingRefunds,
+
+        (SELECT COUNT(*) FROM goods g1
+        WHERE g1.deleted = 0 AND g1.craftsman_id = #{craftsmanId}
+        AND g1.status = 1 AND g1.audit_status = 1 AND g1.stock &lt;= #{stockThreshold}
+        ) AS stockWarnGoods,
+
+        (SELECT COUNT(*) FROM review r
+        WHERE r.deleted = 0
+        AND (r.reply IS NULL OR r.reply = '')
+        AND (
+        (r.type = 1 AND EXISTS (SELECT 1 FROM goods g2
+        WHERE g2.id = r.target_id AND g2.craftsman_id = #{craftsmanId}))
+        OR (r.type = 2 AND EXISTS (SELECT 1 FROM course c2
+        WHERE c2.id = r.target_id AND c2.craftsman_id = #{craftsmanId}))
+        )
+        ) AS unrepliedReviews
+    </select>
+
+</mapper>

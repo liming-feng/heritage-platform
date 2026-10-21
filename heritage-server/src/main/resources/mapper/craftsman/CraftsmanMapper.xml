@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.craftsman.mapper.CraftsmanMapper">
+
+    <!--
+      匠人列表分页
+      在售作品数用预聚合子查询（对 goods 先 GROUP BY 再 JOIN），而不是逐行跑标量子查询。
+    -->
+    <select id="selectCraftsmanPage" resultType="com.lmf.heritage.module.craftsman.vo.CraftsmanSimpleVO">
+        SELECT
+            cr.id,
+            cr.real_name      AS realName,
+            cr.craft_type     AS craftType,
+            cr.inheritance,
+            cr.intro,
+            cr.cover,
+            cr.follower_count AS followerCount,
+            IFNULL(g.cnt, 0)  AS goodsCount
+        FROM craftsman cr
+        LEFT JOIN (
+            SELECT craftsman_id, COUNT(*) AS cnt
+            FROM goods
+            WHERE deleted = 0 AND status = 1 AND audit_status = 1
+            GROUP BY craftsman_id
+        ) g ON g.craftsman_id = cr.id
+        WHERE cr.deleted = 0 AND cr.audit_status = 1
+        <if test="q.craftType != null and q.craftType != ''">
+            AND cr.craft_type = #{q.craftType}
+        </if>
+        <if test="q.keyword != null and q.keyword != ''">
+            AND (cr.real_name LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR cr.craft_type LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR cr.intro LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        <choose>
+            <when test="q.sort == 'follower'">ORDER BY cr.follower_count DESC, cr.id ASC</when>
+            <when test="q.sort == 'goods'">ORDER BY goodsCount DESC, cr.id ASC</when>
+            <when test="q.sort == 'new'">ORDER BY cr.id DESC</when>
+            <otherwise>ORDER BY cr.follower_count DESC, cr.id ASC</otherwise>
+        </choose>
+    </select>
+
+    <!--
+      管理端匠人列表
+      ============================================================================
+      两个预聚合子查询（goods / course）而不是标量子查询：
+        列表页每行都要算「在售作品数」和「已开课数」，写成
+        (SELECT COUNT(*) FROM goods WHERE craftsman_id = cr.id ...) 就是典型的 N+1 ——
+        一页 10 行会退化成 10 次单独的 COUNT。先 GROUP BY 再 JOIN，全程只有两次扫描。
+
+      为什么 JOIN user 而不是加冗余列：
+        匠人档案和账号是 1:1 但生命周期不同（账号先注册、匠人后申请）。
+        账号被禁用后匠人列表仍要能看见他（否则管理员无法处理「被禁用的匠人还在接单」），
+        所以这里 JOIN 不带 u.status 条件，状态只作为筛选项可选。
+
+      sort=audit（默认）：待审优先 + 申请时间正序 —— 审核队列的正确顺序是
+        「先来先审」，把新的排前面会让早提交的申请永远沉底。
+    -->
+    <select id="selectAdminCraftsmanPage" resultType="com.lmf.heritage.module.craftsman.vo.AdminCraftsmanVO">
+        SELECT
+            cr.id,
+            cr.user_id        AS userId,
+            u.username,
+            u.phone,
+            cr.real_name      AS realName,
+            cr.craft_type     AS craftType,
+            cr.inheritance,
+            cr.intro,
+            cr.cover,
+            cr.audit_status   AS auditStatus,
+            cr.reject_reason  AS rejectReason,
+            cr.audit_time     AS auditTime,
+            cr.follower_count AS followerCount,
+            cr.create_time    AS createTime,
+            u.status,
+            IFNULL(g.cnt, 0)  AS goodsCount,
+            IFNULL(co.cnt, 0) AS courseCount
+        FROM craftsman cr
+        JOIN `user` u ON u.id = cr.user_id AND u.deleted = 0
+        LEFT JOIN (
+            SELECT craftsman_id, COUNT(*) AS cnt
+            FROM goods
+            WHERE deleted = 0 AND status = 1 AND audit_status = 1
+            GROUP BY craftsman_id
+        ) g ON g.craftsman_id = cr.id
+        LEFT JOIN (
+            SELECT craftsman_id, COUNT(*) AS cnt
+            FROM course
+            WHERE deleted = 0
+            GROUP BY craftsman_id
+        ) co ON co.craftsman_id = cr.id
+        WHERE cr.deleted = 0
+        <if test="q.auditStatus != null">
+            AND cr.audit_status = #{q.auditStatus}
+        </if>
+        <if test="q.craftType != null">
+            AND cr.craft_type = #{q.craftType}
+        </if>
+        <if test="q.status != null">
+            AND u.status = #{q.status}
+        </if>
+        <if test="q.keyword != null">
+            AND (cr.real_name  LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR u.phone     LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR u.username  LIKE CONCAT('%', #{q.keyword}, '%')
+                 OR cr.craft_type LIKE CONCAT('%', #{q.keyword}, '%'))
+        </if>
+        <if test="q.startTime != null">
+            AND cr.create_time &gt;= #{q.startTime}
+        </if>
+        <if test="q.endTime != null">
+            AND cr.create_time &lt;= #{q.endTime}
+        </if>
+        <choose>
+            <when test="q.sort == 'follower'">ORDER BY cr.follower_count DESC, cr.id ASC</when>
+            <when test="q.sort == 'goods'">ORDER BY goodsCount DESC, cr.id ASC</when>
+            <when test="q.sort == 'new'">ORDER BY cr.create_time DESC, cr.id DESC</when>
+            <otherwise>ORDER BY (cr.audit_status = 0) DESC, cr.create_time ASC, cr.id ASC</otherwise>
+        </choose>
+    </select>
+
+    <!--
+      资质审核详情
+      全平台唯一会返回 id_card_no / cert_image 的查询。
+      这两个字段在 Craftsman 实体上被 @JsonIgnore 屏蔽，想带出去只能在这里显式取，
+      而这里是唯一一处 —— 安全边界靠的是「只有一条路」，不是「记得别写错」。
+    -->
+    <select id="selectAuditDetail" resultType="com.lmf.heritage.module.craftsman.vo.CraftsmanAuditDetailVO">
+        SELECT
+            cr.id,
+            cr.user_id        AS userId,
+            u.username,
+            u.phone,
+            u.email,
+            u.status,
+            u.create_time     AS registerTime,
+            cr.real_name      AS realName,
+            cr.id_card_no     AS idCardNo,
+            cr.cert_image     AS certImage,
+            cr.craft_type     AS craftType,
+            cr.inheritance,
+            cr.intro,
+            cr.resume,
+            cr.cover,
+            cr.audit_status   AS auditStatus,
+            cr.reject_reason  AS rejectReason,
+            cr.audit_time     AS auditTime,
+            cr.follower_count AS followerCount,
+            cr.create_time    AS createTime
+        FROM craftsman cr
+        JOIN `user` u ON u.id = cr.user_id AND u.deleted = 0
+        WHERE cr.deleted = 0
+          AND cr.id = #{id}
+    </select>
+
+</mapper>

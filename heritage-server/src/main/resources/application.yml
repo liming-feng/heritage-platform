@@ -1,0 +1,130 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  tomcat:
+    uri-encoding: UTF-8
+    threads:
+      max: 200
+      min-spare: 10
+
+spring:
+  application:
+    name: heritage-server
+
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3307/heritage?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true
+    username: root
+    password: "123456"
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 32
+          max-idle: 16
+          min-idle: 4
+          max-wait: 3000ms
+
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 20MB
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Shanghai
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      insert-strategy: not_null
+      update-strategy: not_null
+  mapper-locations: classpath*:mapper/**/*.xml
+  type-aliases-package: com.lmf.heritage.module.**.entity
+
+# Knife4j / OpenAPI
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+  default-flat-param-object: true
+
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+    swagger-model-name: 数据模型
+  openapi:
+    title: 非遗手工艺品展示与预约体验平台 API
+    description: 基于 SpringBoot 3.2.5 + Vue 3.4 的非遗平台后端接口文档
+    version: 1.0.0
+    concat: 李明峰 23100025
+
+# 业务自定义配置
+heritage:
+  jwt:
+    # 至少 32 字节，HS256 要求
+    secret: heritage-platform-jwt-secret-key-2026-abcxyz-0123456789
+    # access_token 有效期（秒）：2 小时
+    access-expire: 7200
+    # refresh_token 有效期（秒）：7 天
+    refresh-expire: 604800
+    header: Authorization
+    prefix: "Bearer "
+  upload:
+    # 图片物理存储目录
+    path: E:/workbuddy1/2026-09-17-10-20-47/非遗平台项目/uploads/
+    # 对外访问前缀（含 context-path）
+    access-prefix: /api/uploads/
+    allowed-ext: jpg,jpeg,png,webp,gif
+    max-size: 5242880
+  booking:
+    # 分布式锁等待时间（毫秒）：100 并发抢同一门课时请求会被串行化，
+    # 这里放宽到 5 秒给排队留足空间，避免最后几个请求被误判为「系统繁忙」
+    lock-wait: 5000
+    # 分布式锁持有时间（毫秒）
+    lock-lease: 10000
+
+logging:
+  level:
+    root: info
+    com.lmf.heritage: debug
+    org.springframework.web: info
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: E:/workbuddy1/2026-09-17-10-20-47/非遗平台项目/logs/heritage-server.log

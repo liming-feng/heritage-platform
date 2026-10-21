@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.content.mapper.ArticleCommentMapper">
+
+    <!--
+      评论统一列清单 + 评论人信息。
+      JOIN `user` 一次带出昵称与头像，避免列表里逐条回查用户表（N+1）。
+      user 是 MySQL 关键字，必须加反引号。
+    -->
+    <sql id="voColumns">
+        ac.id,
+        ac.article_id   AS articleId,
+        ac.user_id      AS userId,
+        ac.content,
+        ac.parent_id    AS parentId,
+        ac.like_count   AS likeCount,
+        ac.create_time  AS createTime,
+        u.nickname      AS nickname,
+        u.avatar        AS avatar
+    </sql>
+
+    <!-- 主楼分页：parent_id = 0 -->
+    <select id="selectTopPage" resultType="com.lmf.heritage.module.content.vo.ArticleCommentVO">
+        SELECT
+        <include refid="voColumns"/>
+        FROM article_comment ac
+        LEFT JOIN `user` u ON u.id = ac.user_id
+        WHERE ac.deleted = 0
+        AND ac.article_id = #{articleId}
+        AND ac.parent_id = 0
+        ORDER BY ac.id DESC
+    </select>
+
+    <!-- 批量查回复：按主楼 id 一次捞全，按时间正序（回复通常按发生顺序看） -->
+    <select id="selectReplies" resultType="com.lmf.heritage.module.content.vo.ArticleCommentVO">
+        SELECT
+        <include refid="voColumns"/>
+        FROM article_comment ac
+        LEFT JOIN `user` u ON u.id = ac.user_id
+        WHERE ac.deleted = 0
+        AND ac.parent_id IN
+        <foreach collection="parentIds" item="pid" open="(" separator="," close=")">
+            #{pid}
+        </foreach>
+        ORDER BY ac.id ASC
+    </select>
+
+</mapper>

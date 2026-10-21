@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lmf.heritage.module.coupon.mapper.CouponMapper">
+
+    <!--
+      领券中心。
+      剩余数量直接在 SQL 里算出来（total_count - received_count），
+      不让调用方各算一遍 —— 同一个数字在三个地方算，迟早会不一致。
+    -->
+    <select id="selectCenterPage" resultType="com.lmf.heritage.module.coupon.vo.CouponVO">
+        SELECT
+            c.id,
+            c.name,
+            c.type,
+            c.scope,
+            c.threshold,
+            c.amount,
+            c.discount,
+            c.total_count                                  AS totalCount,
+            c.received_count                               AS receivedCount,
+            (c.total_count - c.received_count)             AS remainCount,
+            c.per_limit                                    AS perLimit,
+            c.start_time                                   AS startTime,
+            c.end_time                                     AS endTime,
+            c.description
+        FROM coupon c
+        WHERE c.deleted = 0
+          AND c.status = 1
+          AND (c.start_time IS NULL OR c.start_time &lt;= #{now})
+          AND (c.end_time IS NULL OR c.end_time &gt; #{now})
+        ORDER BY c.id DESC
+    </select>
+
+    <!--
+      管理端券种分页。
+      usedCount / receiveRecordCount 用子查询带出而不是让调用方再查一遍：
+      这两个数字是列表里唯一需要额外表才能得到的字段，放进来才能避免 N+1。
+    -->
+    <select id="selectAdminCouponPage" resultType="com.lmf.heritage.module.coupon.vo.AdminCouponVO">
+        SELECT
+            c.id,
+            c.name,
+            c.type,
+            c.scope,
+            c.threshold,
+            c.amount,
+            c.discount,
+            c.total_count                                  AS totalCount,
+            c.received_count                               AS receivedCount,
+            (c.total_count - c.received_count)             AS remainCount,
+            c.per_limit                                    AS perLimit,
+            c.start_time                                   AS startTime,
+            c.end_time                                     AS endTime,
+            c.status,
+            c.description,
+            c.create_time                                  AS createTime,
+            (SELECT COUNT(*) FROM user_coupon uc
+              WHERE uc.deleted = 0 AND uc.coupon_id = c.id)                        AS receiveRecordCount,
+            (SELECT COUNT(*) FROM user_coupon uc
+              WHERE uc.deleted = 0 AND uc.coupon_id = c.id AND uc.status = 1)      AS usedCount
+        FROM coupon c
+        WHERE c.deleted = 0
+        <if test="q.name != null and q.name != ''">
+            AND c.name LIKE CONCAT('%', #{q.name}, '%')
+        </if>
+        <if test="q.type != null">
+            AND c.type = #{q.type}
+        </if>
+        <if test="q.scope != null">
+            AND c.scope = #{q.scope}
+        </if>
+        <if test="q.status != null">
+            AND c.status = #{q.status}
+        </if>
+        <if test="q.effective != null">
+            <choose>
+                <when test="q.effective == 1">
+                    AND c.start_time IS NOT NULL AND c.start_time &gt; NOW()
+                </when>
+                <when test="q.effective == 2">
+                    AND (c.start_time IS NULL OR c.start_time &lt;= NOW())
+                    AND (c.end_time IS NULL OR c.end_time &gt; NOW())
+                </when>
+                <when test="q.effective == 3">
+                    AND c.end_time IS NOT NULL AND c.end_time &lt;= NOW()
+                </when>
+            </choose>
+        </if>
+        ORDER BY c.status DESC, c.id DESC
+    </select>
+
+    <!-- 管理端单张券详情（与列表同一套字段） -->
+    <select id="selectAdminCouponById" resultType="com.lmf.heritage.module.coupon.vo.AdminCouponVO">
+        SELECT
+            c.id,
+            c.name,
+            c.type,
+            c.scope,
+            c.threshold,
+            c.amount,
+            c.discount,
+            c.total_count                                  AS totalCount,
+            c.received_count                               AS receivedCount,
+            (c.total_count - c.received_count)             AS remainCount,
+            c.per_limit                                    AS perLimit,
+            c.start_time                                   AS startTime,
+            c.end_time                                     AS endTime,
+            c.status,
+            c.description,
+            c.create_time                                  AS createTime,
+            (SELECT COUNT(*) FROM user_coupon uc
+              WHERE uc.deleted = 0 AND uc.coupon_id = c.id)                        AS receiveRecordCount,
+            (SELECT COUNT(*) FROM user_coupon uc
+              WHERE uc.deleted = 0 AND uc.coupon_id = c.id AND uc.status = 1)      AS usedCount
+        FROM coupon c
+        WHERE c.deleted = 0 AND c.id = #{id}
+    </select>
+
+    <!--
+      券种维度总览：券种数、启用数、发放总量、已领取量。
+      只统计 coupon 表，领取张数取 received_count（领取时的原子自增，权威值），
+      不再 SUM user_coupon —— 两个口径放进同一个接口，只会让人不知道该信哪个。
+    -->
+    <select id="statOverall" resultType="java.util.Map">
+        SELECT
+            COUNT(*)                                               AS couponTotal,
+            COALESCE(SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END), 0) AS activeCoupon,
+            COALESCE(SUM(total_count), 0)                          AS issuedTotal,
+            COALESCE(SUM(received_count), 0)                       AS receivedTotal
+        FROM coupon
+        WHERE deleted = 0
+    </select>
+
+    <!--
+      按券类型分组。
+      usedCount 通过 LEFT JOIN 一张「按券种聚合好的已使用数」派生表得到：
+      直接 JOIN user_coupon 再 GROUP BY 会让 received_count 被 JOIN 放大，
+      所以先在子查询里把粒度降到「每个券种一行」。
+    -->
+    <select id="statByType" resultType="java.util.Map">
+        SELECT
+            c.type                              AS type,
+            COUNT(c.id)                         AS couponCount,
+            COALESCE(SUM(c.received_count), 0)  AS receivedCount,
+            COALESCE(SUM(u.usedCount), 0)       AS usedCount
+        FROM coupon c
+        LEFT JOIN (
+            SELECT coupon_id, COUNT(*) AS usedCount
+            FROM user_coupon
+            WHERE deleted = 0 AND status = 1
+            GROUP BY coupon_id
+        ) u ON u.coupon_id = c.id
+        WHERE c.deleted = 0
+        GROUP BY c.type
+        ORDER BY c.type ASC
+    </select>
+
+</mapper>
