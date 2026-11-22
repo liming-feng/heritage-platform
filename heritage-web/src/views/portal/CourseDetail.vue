@@ -175,9 +175,18 @@ async function load() {
     // detail 返回 CourseListVO 字段 + CourseDetailVO 扩展字段（组合返回）
     remainSecondsNow.value = detail.remainSeconds ?? 0
     startTicker()
+    reportHistory()
   } finally {
     loading.value = false
   }
+}
+
+/** 上报浏览历史（targetType=2 课程），供用户端「我的浏览」使用；未登录不上报 */
+function reportHistory() {
+  if (!user.isLogin) return
+  http
+    .post('/portal/history/upload', { items: [{ targetType: 2, targetId: Number(route.params.id) }] })
+    .catch(() => { /* 上报失败不影响浏览 */ })
 }
 
 function startTicker() {

@@ -444,6 +444,10 @@ public class BookingServiceImpl extends ServiceImpl<BookingMapper, Booking> impl
         BookingStatusEnum.checkTransfer(booking.getStatus(), BookingStatusEnum.CHECKED_IN);
 
         LocalDateTime now = LocalDateTime.now();
+        Course course = courseMapper.selectById(booking.getCourseId());
+        // 时间窗口校验放在状态机之后：状态不对时先提示状态问题，那比"还没到时间"更要紧
+        assertCheckinWindow(course, now);
+
         txTemplate.executeWithoutResult(status -> {
             int rows = bookingMapper.transferStatus(booking.getId(),
                     Constants.BOOKING_PASSED, Constants.BOOKING_CHECKED_IN);
@@ -454,7 +458,6 @@ public class BookingServiceImpl extends ServiceImpl<BookingMapper, Booking> impl
         bookingStatusLogService.record(booking.getId(), Constants.BOOKING_PASSED, Constants.BOOKING_CHECKED_IN,
                 dto.getBookingId() != null ? "匠人在名单中手动核销" : "匠人凭核销码核销");
 
-        Course course = courseMapper.selectById(booking.getCourseId());
         CheckinResultVO vo = new CheckinResultVO();
         vo.setBookingId(booking.getId());
         vo.setBookingNo(booking.getBookingNo());
@@ -480,6 +483,26 @@ public class BookingServiceImpl extends ServiceImpl<BookingMapper, Booking> impl
                 booking.getBookingNo(), craftsmanId, booking.getQuota(),
                 dto.getBookingId() != null ? "名单手动" : "核销码");
         return vo;
+    }
+
+    /**
+     * 核销时间窗口校验：开课前 {@link Constants#CHECKIN_ADVANCE_MINUTES} 分钟 ~ 课程结束
+     *
+     * <p>不加窗口的话「提前一周核销」也会成功 —— 签到就失去了「本人到场」的意义，
+     * 也挡不住代签。窗口只在课程有开课时间时生效：脏数据（时间为空）放行，
+     * 不让一条异常数据把匠人卡死在签到台前。</p>
+     */
+    private void assertCheckinWindow(Course course, LocalDateTime now) {
+        if (course == null || course.getStartTime() == null) {
+            return;
+        }
+        LocalDateTime openAt = course.getStartTime().minusMinutes(Constants.CHECKIN_ADVANCE_MINUTES);
+        BusinessException.throwIf(now.isBefore(openAt), ErrorCode.CHECKIN_TOO_EARLY,
+                "还没到核销时间：开课（" + course.getStartTime().format(TIME_FMT) + "）前 "
+                        + Constants.CHECKIN_ADVANCE_MINUTES + " 分钟才可核销");
+        BusinessException.throwIf(course.getEndTime() != null && now.isAfter(course.getEndTime()),
+                ErrorCode.CHECKIN_COURSE_ENDED,
+                "课程已于 " + course.getEndTime().format(TIME_FMT) + " 结束，无法核销");
     }
 
     /**

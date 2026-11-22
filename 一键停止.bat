@@ -1,5 +1,7 @@
 @echo off
 title Heritage Platform - One-Click Stop
+rem Required: the Redis branch below reads !PORT_UP! inside an if-block.
+setlocal enabledelayedexpansion
 
 set "ROOT=%~dp0"
 set "MYSQLADMIN=C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqladmin.exe"

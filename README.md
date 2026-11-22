@@ -1,7 +1,19 @@
 # 非遗手工艺品展示与预约体验平台
 
-> 毕业设计 · 基于 SpringBoot + Vue 的非遗手工艺品展示与预约体验平台
-> 作者：李明峰 23100025 · 信息工程学院 计算机科学与技术 2023 级大数据班 · 指导教师：吴长伟
+> 毕业设计 · SpringBoot 3.2 + Vue 3.4 前后端分离项目 · 作者：李明峰
+
+![首页](docs/screenshots/01-home.jpg)
+
+<p align="center">
+  <img src="docs/screenshots/02-course-detail.jpg" width="49%" />
+  <img src="docs/screenshots/03-booking-dialog.jpg" width="49%" />
+  <br/>
+  <img src="docs/screenshots/04-booking-qrcode.jpg" width="49%" />
+  <img src="docs/screenshots/05-craftsman-checkin.jpg" width="49%" />
+  <br/>
+  <img src="docs/screenshots/06-admin-bookings.jpg" width="49%" />
+  <img src="docs/screenshots/07-admin-dashboard.jpg" width="49%" />
+</p>
 
 ## 一、项目简介
 
@@ -29,29 +41,30 @@
 
 ## 三、环境要求
 
-- JDK 17（Temurin）、Maven 3.9（本地仓库已就绪）
-- MySQL 8（本项目用 **3307** 端口实例；3306 是本机 MariaDB，勿混）、库名 `heritage`
+- JDK 17（Temurin）、Maven 3.9
+- MySQL 8（本项目使用 **3307** 端口实例，库名 `heritage`）
 - Redis 7（127.0.0.1:6379，无密码）
 - Node.js 20+（前端）
 - 初始化数据：`sql/schema.sql`（建库建表 + 出厂演示数据，可重复执行恢复出厂）
 
+> 数据库账号、Redis、上传目录等本地配置见 `heritage-server/src/main/resources/application.yml`，按自己环境修改即可。
+
 ## 四、启动步骤（约 10 分钟）
 
 ```powershell
-# 1. 启动 MySQL8（3307）与 Redis（开机自启可注册 Windows 服务，见 00-本地启动说明.md）
-E:\workbuddy1\2026-09-17-10-20-47\tools\start-mysql8.bat
+# 1. 启动 MySQL(3307) 与 Redis(6379)
 
 # 2. 初始化 / 恢复数据库
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -h 127.0.0.1 -P 3307 -uroot -p123456 --default-character-set=utf8mb4 < sql\schema.sql
+mysql -h 127.0.0.1 -P 3307 -uroot -p --default-character-set=utf8mb4 < sql/schema.sql
 
-# 3. 启动后端（或 IDEA 直接运行 HeritageApplication，VM: -Dfile.encoding=UTF-8 -Xmx1024m）
+# 3. 启动后端（或在 IDEA 中运行 HeritageApplication）
 cd heritage-server
-mvn spring-boot:run   # 端口 8080
+mvn spring-boot:run          # 端口 8080
 
 # 4. 启动前端
-cd heritage-web
+cd ../heritage-web
 npm install
-npm run dev           # 端口 5173，/api 代理到 8080
+npm run dev                  # 端口 5173，/api 已代理到 8080
 ```
 
 - 健康检查：<http://127.0.0.1:8080/api/portal/ping>
@@ -66,7 +79,7 @@ npm run dev           # 端口 5173，/api 代理到 8080
 | user01 / user02 | 普通用户 | 用户端 |
 | zhangjian / limu / wangtao | 匠人（剪纸/木雕/陶艺） | 匠人端 |
 
-## 五、预约主线答辩演示脚本（约 5 分钟）
+## 五、预约主线演示脚本（约 5 分钟）
 
 > 演示前先执行 `sql/schema.sql` 恢复出厂数据；账号密码见上表。
 
@@ -91,7 +104,7 @@ npm run dev           # 端口 5173，/api 代理到 8080
 | 单元测试（5 类核心逻辑 62 用例） | `heritage-server/src/test/java/...` | `mvn test` 62/62 通过（JwtUtil / 优惠券策略 / 预约状态机 / Redis 分布式锁 / 订单金额） |
 | 接口集合 | `postman/非遗平台接口集合.postman_collection.json` | 16 分组 / 211 接口（由控制器源码生成，导入即用） |
 | JMeter 压测脚本 | `jmeter/商品列表压测.jmx`、`jmeter/预约提交压测.jmx` | 读 50 并发 863 req/s、p95 59ms、错误率 0；写 100 并发抢 10 名额：恰好 10 成功、90 个返回 5006 名额不足、remain_quota 归 0 |
-| 分阶段联调报告 | `07/08/09/10-*报告.md` | P2–P9 每阶段全量 HTTP 断言（23~149 项）全绿 |
+| 分阶段联调报告 | `03~11-*报告.md` | P2–P10 每阶段全量 HTTP 断言（23~149 项）全绿 |
 
 ## 七、目录结构
 
@@ -106,5 +119,14 @@ npm run dev           # 端口 5173，/api 代理到 8080
 ├── sql/schema.sql          # 建表 + 出厂演示数据（27 张表）
 ├── jmeter/                 # 压测脚本
 ├── postman/                # Postman 集合
-└── 00~11-*.md              # 规划书、执行提示词、各阶段联调报告
+├── docs/screenshots/       # 项目截图
+└── 00~12-*.md              # 规划书、各阶段联调报告、答辩指南
 ```
+
+## 八、可以深入聊的技术点
+
+- **并发防超卖**：为什么是「分布式锁 + 行锁 + 唯一索引」三层，而不是单一方案？锁的粒度、租约、失效兜底怎么设计？
+- **JWT 双 Token**：access 短效 + refresh 无感续期，注销如何让 Token 立刻失效？
+- **预约状态机**：六态流转与取消回滚，如何保证名额不虚占、不漏还？
+- **缓存一致性**：为什么「先更新数据库再删缓存」，空值缓存与差异化过期解决了什么？
+- **可观测性**：操作日志、Excel 导出、11 类统计图表的数据口径怎么定？

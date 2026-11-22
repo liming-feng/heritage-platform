@@ -40,7 +40,7 @@
         <el-table-column label="价格" width="90"><template #default="{ row }">¥{{ row.price }}</template></el-table-column>
         <el-table-column label="名额" width="110">
           <template #default="{ row }">{{ row.remainQuota }}/{{ row.totalQuota }}
-            <div class="sub">{{ Math.round((row.usedRate || 0) * 100) }}% 已约</div>
+            <div class="sub">{{ pct(row.usedRate, '0%') }} 已约</div>
           </template>
         </el-table-column>
         <el-table-column prop="bookingCount" label="预约" width="70" />
@@ -68,6 +68,38 @@
         <el-pagination v-model:current-page="query.pageNum" :page-size="query.pageSize" :total="Number(total)" layout="total, prev, pager, next" background @current-change="load" />
       </div>
     </div>
+
+    <DetailDialog v-model="courseDialog" :title="`课程审核 · ${courseInfo.title || ''}`" :loading="courseLoading" width="740px">
+      <el-descriptions :column="2" size="small" border>
+        <el-descriptions-item label="分类 / 匠人">
+          {{ courseInfo.categoryName || '—' }} · {{ courseInfo.craftsmanName || '—' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="上课地点">{{ courseInfo.address || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="开课时间">{{ dateTime(courseInfo.startTime) }}</el-descriptions-item>
+        <el-descriptions-item label="结束时间">{{ dateTime(courseInfo.endTime) }}</el-descriptions-item>
+        <el-descriptions-item label="名额">
+          总 {{ courseInfo.totalQuota ?? '—' }} · 已约 {{ courseInfo.bookedQuota ?? '—' }} · 剩余
+          {{ courseInfo.remainQuota ?? '—' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="到场率">
+          {{ pct(courseInfo.checkinRate) }}
+          <span class="d-sum" style="margin: 0 0 0 6px">缺席 {{ courseInfo.absentPeople ?? 0 }} 人</span>
+        </el-descriptions-item>
+      </el-descriptions>
+
+      <div class="d-sec">预约状态分布</div>
+      <div class="d-stats">
+        <div class="d-stat"><b>{{ courseInfo.bookingWait ?? 0 }}</b><span>待审核</span></div>
+        <div class="d-stat"><b>{{ courseInfo.bookingPassed ?? 0 }}</b><span>已通过</span></div>
+        <div class="d-stat"><b>{{ courseInfo.bookingCheckedIn ?? 0 }}</b><span>已核销</span></div>
+        <div class="d-stat"><b>{{ courseInfo.bookingFinished ?? 0 }}</b><span>已完成</span></div>
+        <div class="d-stat"><b>{{ courseInfo.bookingRejected ?? 0 }}</b><span>已拒绝</span></div>
+        <div class="d-stat"><b>{{ courseInfo.bookingCanceled ?? 0 }}</b><span>已取消</span></div>
+      </div>
+
+      <div class="d-sec">课程简介</div>
+      <div class="d-text">{{ courseInfo.description || '—' }}</div>
+    </DetailDialog>
   </div>
 </template>
 
@@ -75,12 +107,21 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http, saveBlob } from '@/utils/request'
-import { img, onImgErr, dateTime, COURSE_STATUS, AUDIT_STATUS } from '@/utils/format'
+import { img, onImgErr, dateTime, pct, COURSE_STATUS, AUDIT_STATUS } from '@/utils/format'
+import DetailDialog from '@/components/DetailDialog.vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const list = ref([])
 const selected = ref([])
 const total = ref(0)
 const loading = ref(false)
+
+/* 课程审核详情弹窗 */
+const courseDialog = ref(false)
+const courseLoading = ref(false)
+const courseInfo = ref({})
 const query = reactive({ pageNum: 1, pageSize: 10, keyword: '', auditStatus: undefined, status: undefined })
 
 async function load() {
@@ -104,17 +145,14 @@ function reload() {
 }
 
 async function detail(row) {
-  const d = await http.get(`/admin/course/${row.id}/audit-detail`)
-  ElMessageBox.alert(
-    `${d.title}（${d.categoryName} · ${d.craftsmanName}）<br/>` +
-    `开课：${dateTime(d.startTime)} ~ ${dateTime(d.endTime)}<br/>地点：${d.address}<br/>` +
-    `名额：总 ${d.totalQuota}，剩余 ${d.remainQuota}，已约 ${d.bookedQuota}<br/>` +
-    `预约统计：待审 ${d.bookingWait} / 通过 ${d.bookingPassed} / 核销 ${d.bookingCheckedIn} / 完成 ${d.bookingFinished} / 拒绝 ${d.bookingRejected} / 取消 ${d.bookingCanceled}<br/>` +
-    `到场率：${d.checkinRate != null ? Math.round(d.checkinRate * 100) + '%' : '—'}（缺席 ${d.absentPeople} 人）<br/>` +
-    `简介：${d.description || '—'}`,
-    `课程审核 · ${d.title}`,
-    { dangerouslyUseHTMLString: true, customStyle: { maxWidth: '560px' } }
-  )
+  courseInfo.value = {}
+  courseDialog.value = true
+  courseLoading.value = true
+  try {
+    courseInfo.value = await http.get(`/admin/course/${row.id}/audit-detail`)
+  } finally {
+    courseLoading.value = false
+  }
 }
 
 async function audit(row, pass) {
@@ -151,7 +189,13 @@ async function exportCourses() {
   saveBlob(res, '课程列表.xlsx')
 }
 
-onMounted(load)
+onMounted(() => {
+  // 工作台待办「待审核课程」带 ?auditStatus=0 跳过来
+  if (route.query.auditStatus != null && route.query.auditStatus !== '') {
+    query.auditStatus = Number(route.query.auditStatus)
+  }
+  load()
+})
 </script>
 
 <style scoped>

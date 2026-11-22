@@ -53,6 +53,20 @@
         <el-pagination v-model:current-page="query.pageNum" :page-size="query.pageSize" :total="Number(total)" layout="total, prev, pager, next" background @current-change="load" />
       </div>
     </div>
+
+    <DetailDialog v-model="userDialog" :title="`用户 #${userInfo.id || ''}`" :loading="userLoading" width="580px">
+      <el-descriptions :column="2" size="small" border>
+        <el-descriptions-item label="用户名">{{ userInfo.username || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="昵称">{{ userInfo.nickname || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="手机号">{{ userInfo.phone || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="邮箱">{{ userInfo.email || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="角色">{{ userInfo.roleText || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="账号状态">
+          <el-tag size="small" :type="userInfo.status === 1 ? 'success' : 'info'">{{ userInfo.statusText || '—' }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="注册时间" :span="2">{{ dateTime(userInfo.createTime) }}</el-descriptions-item>
+      </el-descriptions>
+    </DetailDialog>
   </div>
 </template>
 
@@ -61,10 +75,16 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http, saveBlob } from '@/utils/request'
 import { dateTime } from '@/utils/format'
+import DetailDialog from '@/components/DetailDialog.vue'
 
 const list = ref([])
 const total = ref(0)
 const loading = ref(false)
+
+/* 用户详情弹窗 */
+const userDialog = ref(false)
+const userLoading = ref(false)
+const userInfo = ref({})
 const query = reactive({ pageNum: 1, pageSize: 10, keyword: '', role: undefined, status: undefined })
 
 async function load() {
@@ -92,12 +112,14 @@ async function toggle(row) {
 }
 
 async function detail(row) {
-  const d = await http.get(`/admin/user/${row.id}`)
-  ElMessageBox.alert(
-    `用户名：${d.username}<br/>昵称：${d.nickname || '—'}<br/>手机：${d.phone || '—'}<br/>邮箱：${d.email || '—'}<br/>角色：${d.roleText}<br/>状态：${d.statusText}<br/>注册：${dateTime(d.createTime)}`,
-    `用户 #${d.id}`,
-    { dangerouslyUseHTMLString: true }
-  )
+  userInfo.value = {}
+  userDialog.value = true
+  userLoading.value = true
+  try {
+    userInfo.value = await http.get(`/admin/user/${row.id}`)
+  } finally {
+    userLoading.value = false
+  }
 }
 
 async function exportUsers() {

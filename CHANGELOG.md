@@ -73,3 +73,95 @@
 - **README.md**：简介/技术栈/功能清单/启动步骤/预约主线答辩演示脚本
 - **预约主题材**：类图、时序图、状态机图与流转表、三层防超卖核心代码片段（见 11 号报告）
 - 全局自查：对照规划书第九节 8 条验收标准逐条给出结论（见 11 号报告）
+
+## 增量修复（2026-10-27）
+
+- **补上缺失的图片上传接口**（此前只有静态资源映射 `/uploads/**`，没有任何上传入口）
+  - `POST /portal/upload/image`、`POST /craftsman/upload/image`、`POST /admin/upload/image`
+  - 三端各一个路径、共用一套实现：路径不同只为让拦截器按前缀做角色隔离
+  - 服务端生成 UUID 文件名 + 扩展名/Content-Type 双重校验 + 5MB 上限 + 按 `yyyy/MM/dd` 分目录
+  - **扩展名白名单刻意不含 svg**（可内嵌脚本，回显会构成存储型 XSS）
+  - 实测：png 上传 200 并返回 `/api/uploads/2026/10/27/xxx.png`；svg 返回 1001；伪造 png 返回「该文件不是图片」；无 token 返回 401；静态访问 200 `image/png`
+- **前端新增 `components/ImageUpload.vue`**：点击选图即传（走项目统一 axios，带 token 并支持 401 静默刷新），保留「手动填写地址」入口兼容已有 `/api/uploads/demo/*.svg` 演示数据
+- 替换 4 处「图片地址」纯文本框：匠人端 `GoodsEdit.vue`（商品封面）、`CourseEdit.vue`（课程封面）、管理端 `Articles.vue`（资讯封面）、`Banners.vue`（轮播图）
+- **修复匠人端「我的课程」审核列空白**（只显示一个空的标签壳）
+  - 根因：`CourseListVO` 没有 `auditStatus / auditStatusDesc` 字段，`selectMyCoursePage` 也没查 `audit_status`，前端 `{{ row.auditStatusDesc }}` 渲染出空字符串，`AUDIT_STATUS[undefined]?.type` 落到默认灰底标签 → 页面只剩一个空框
+  - 补 `CourseListVO` 两字段、`selectMyCoursePage` 增查 `c.audit_status`、`decorate()` 复用 `AdminCourseServiceImpl.auditText()` 填文案（与商品共用同一套三态文案，避免两处漂移）
+  - **顺带修掉一个「筛了没反应」**：页面有「审核状态」下拉，但 `CourseQueryDTO` 无该字段、SQL 也没过滤条件，选了一直返回全量 → 补 `auditStatus` 字段与 `<if>` 过滤
+  - 前端审核列改为 `v-if` 兜底：无文案时显示 `—` 而不是空标签
+  - 实测：全部 4 条 `auditStatus=1 → 已通过`；`auditStatus=0/2 → total 0`；`status=2 → total 3`
+- **修复匠人端「我的商品 - 浏览量」弹窗空白**
+  - 根因一（前后端契约不符）：前端按 `[{dateText, count}]` 渲染折线，而 `GET /craftsman/goods/{id}/views` 返回的是**单个 Integer**（累计浏览量）。`410.map(...)` 抛 TypeError，`setOption` 根本没跑到 → 白板
+  - 根因二（echarts 在动画期初始化）：原代码在弹窗刚打开、DOM 宽度还是 0 时 `echarts.init`，即使数据正常也会画出 0×0 空白画布
+  - 根因三（数据源一直是死的）：前端从未调用过 `/portal/history/upload`，`browse_history` 只有建库时的演示数据
+  - 处理：新增 `GET /craftsman/goods/{id}/view-trend?days=7`（返回 `{total, points[]}`，按天补零、天数夹在 1~90）；弹窗改为「累计浏览人数 + 近 7 天折线 + 无数据时 el-empty」；绘图改挂 `@opened` 并在关闭时 dispose；商品详情页/课程详情页补上浏览历史上报
+  - 口径：`points` 是 `browse_history` 按 (user,target) 去重后的人数，`total` 是 `view_count` + Redis 增量（含未登录），**两者数值本就不相等**，不强行对齐
+  - 实测：上报后 `2026-10-27 count=1`、`total=410`；`vite build` 通过
+- **工作台「待办提醒」五条跳转全部带筛选参数**
+  - 原来五条都只是 `router.push` 到列表首页，落地后还要用户自己再点一次页签/勾选，等于只跳了一半
+  - 现改为：待发货 → `/craftsman/orders?tab=1`；待审核预约 → `/craftsman/bookings?tab=0`；退款申请 → `/craftsman/orders?tab=refund`；库存预警 → `/craftsman/goods?stockWarn=1`；未回复评价 → `/craftsman/reviews?replied=1`
+  - 四个目标页 `onMounted` 读取 query 并初始化筛选，非法值忽略（回落默认）
+  - **顺带修两个「筛选是摆设」**：① 商品页「只看库存预警」勾选框只改了本地 bool、没进请求参数；② 评价页「只看未回复」传的是 `replied=true`，而后端 `replied=true` 表示**已回复**，勾了反而只剩已回复的
+  - 实测（匠人 zhangjian，看板数字 ↔ 列表 total 完全对齐）：待发货 3↔3、待审核预约 0↔0、退款 1↔1、库存预警 1↔1、未回复 3↔3
+- **订单详情弹窗重做**（原来是把 `addressSnapshot` 整条 JSON 直接甩出来）
+  - 新增 `utils/format.js → addressText()`：解析地址快照，只取省市区+详细地址，解析失败/非 JSON 原样返回，省市区去重（直辖市 province==city）
+  - 匠人端 `Orders.vue` 的 `ElMessageBox.alert` 改为 `el-dialog`：状态/时间轴 → 商品明细（图/规格/单价/数量/小计）→ 收货与物流（`el-descriptions`）→ 金额结算 → 退款块（申请原因/驳回原因，仅在有退款时出现）
+  - 用户端 `portal/OrderDetail.vue` 同样改为 `addressText()`（同一处 JSON 泄漏）
+  - 实测（order 32 真实快照）：`{"province":"江苏省","city":"南京市","district":"玄武区",...}` → `江苏省南京市玄武区 珠江路 200 号 XX 小区 3 栋 502`
+- **导出 Excel 支持勾选导出（3 个有勾选列的列表页）**
+  - 后端：`OrderQueryDTO` / `AdminGoodsQueryDTO` / `AdminArticleQueryDTO` 增加 `ids`；订单导出用 `wrapper.in(...)`，商品与资讯在 XML 里加 `ids IN (...)`（与其它筛选条件是 AND）
+  - 前端：勾选了就传 `ids=32,31` 并导出「所选」，没勾则按当前筛选导出全部，按钮文案随之变化
+  - 顺手解决勾选列的两个限制：匠人订单的勾选列原来只在「待发货」页签出现（现常驻，批量发货按钮改为按页签禁用）；管理端商品/资讯原来只能勾「待审核/草稿」行（现全部可勾，`selection` 存全部勾选、`selected` 只存可批量处理的那部分，批量按钮行为不变）
+  - 另修：退款页签导出漏传 `refundOnly`，原来会导出全部订单
+  - 实测：订单 13→2、商品 22→2、资讯 6→1、退款页签 1
+- **库存预警弹窗重做成「榜」**
+  - 问题：标题叫「库存预警商品」，内容是四列普通表格 —— 没有名次、没有刻度，预警文案还被 110px 列宽截断成「仅剩 2 件，建议补」
+  - 后端本来就按 `stock ASC, sales DESC` 排好了（`selectStockWarn`），是前端没把顺序表达出来
+  - 改为排行榜样式：名次徽章（前三名配色递进）→ 封面 → 名称+分类+累计售出 → 库存大数字 + 相对预警线的条形（0 件也留一小截，"见底"看得见）→ 状态标签（已售罄/库存告急）→ 补货
+  - 顶部汇总：`N 件在售商品低于预警线` + `预警线：库存 ≤ 5 件 · 按库存从少到多排序`；空态给 `el-empty`
+  - ⚠️ 阈值前端常量 `STOCK_LINE = 5` 与后端 `Constants.STOCK_WARN_THRESHOLD` 对应，改后端时要同步（只影响条形刻度与说明文案，不影响筛选）
+- **修复「好评率 10000%」及其同类（前后端百分比量纲不一致）**
+  - 后端 `percent()` / `rate()` 一律返回 **0–100 的百分数**（实测 `goodRate:100.0`、`repliedRate:57.1`、`useRate:54.55`、`usedRate:40.0`、`within24hRate:75.00`），前端却又 ×100，于是 100% 变成 10000%
+  - 新增 `utils/format.js → pct(v, dash)`：只补 `%` 并保留一位小数，**不再乘 100**；同时把它作为「rate 字段统一展示口径」的唯一入口
+  - 修掉 6 处：匠人端好评率；管理端优惠券领取率/使用率（列表 + 统计弹窗共 4 处）；管理端课程已约率与到场率；管理端反馈 24h 完成率；匠人端课程已约率（原来有 `usedRate` 时会变 4000%）
+  - 保留 3 处本地算的比例（仍应 ×100）：课程「已约」兜底、库存条形宽度、课程详情进度
+  - 实测：好评率 100.0 → `100%`；优惠券 3.67/54.55 → `3.7% / 54.6%`；课程 40.0 → `40%`
+- **7 处「拼 `<br/>` 的文本弹窗」全部改为结构化详情弹窗**
+  - 新增 `components/DetailDialog.vue`（统一外壳：标题/宽度/loading/页脚），配套全局样式 `.d-sec` `.d-sum` `.d-text` `.d-imgs` `.d-chips` `.d-stats` —— 放在 `styles/index.css` 因为 scoped 作用不到插槽内容
+  - 逐项改造：匠人端**预约名单**（表格：学员/电话/名额/状态/核销码/签到时间/备注 + 顶部摘要）、管理端**用户详情**、**反馈详情**（内容块 + 回复块 + 处理时间）、**商品审核**（图片墙 + 基本信息 + 规格表 + 详情）、**匠人资质**（信息表 + 简介/履历 + 证书图片墙 + 作品/课程标签）、**课程审核**（信息表 + 6 格预约状态分布 + 简介）、**券使用统计**（3 个指标卡 + 按类型拆分表）
+  - 附带收益：原来 `<br/>` 拼的详情无法滚动（长简介会把弹窗撑爆）、字段不对齐、图片只能塞 `<img>`，现在统一由 `el-descriptions` / `el-table` 承担
+  - 全项目 `ElMessageBox.alert` 归零（仅剩注释里的一处说明文字）
+- **管理端看板「待办」四项可点击跳转**
+  - 问题：四个 `el-tag` 只是文字，没有 `@click`、没有 hover 反馈，点了当然没反应
+  - 改为可点击 chip（`button` + hover 抬升/主色描边/右箭头），非零项带箭头，**零值项置灰不可点**并给 `title="暂无…"` —— 避免"点进去空列表还以为没生效"
+  - 跳转均带筛选：待审核商品/课程/匠人 → `?auditStatus=0`，未处理反馈 → `?status=0`；四个目标页 `onMounted` 读 query 初始化筛选（匠人页的筛选是字符串枚举，做了白名单校验）
+  - 实测：看板 `0 / 0 / 1 / 1`，对应列表 `total` 亦为 `0 / 0 / 1 / 1`
+  - 修正：初版把「待审核匠人」的跳转写成 `/admin/craftsmen`，而真实路由是 **`/admin/craftsmans`**（复数带 s），点进去 404。改为**按路由 name 跳转**（`AdminGoods` / `AdminCourses` / `AdminCraftsmans` / `AdminFeedbacks`），不再手写 path
+  - 全量复查了项目里 17 个硬编码跳转路径，其余均与 `router/index.js` 一致
+- **结算页新增「选择优惠券」抽屉**
+  - 原来是一排横向 `el-radio` 小卡片：一屏放不下、看不到有效期、可用与不可用混在一起、不可用原因挤在一行字里
+  - 新增 `components/CouponPicker.vue`（`el-drawer` 440px）：顶部「可用 N 张 · 最高可省 ¥X」→ 可用/不可用两个页签 → 券卡片（左侧抵扣额 + 名称/规则/有效期/本单到手价，不可用显示原因并置灰）→ 底部固定「不使用优惠券 / 确定」
+  - 结算页改成一行明确入口：已选显示券名 + `-¥X` + 规则；未选显示「N 张可用，最高可省 ¥X」；无券显示「本单暂无可用优惠券 · 去领券」→ 空态里还能直达领券中心
+  - 修掉一个隐患：原来每次 `loadPreview` 都会在 `userCouponId === null` 时自动回填最优券，导致用户选「不使用」后一刷新又被改回来。新增 `couponTouched` 标记，用户手动选过就不再干预
+  - 实测（`luozhen`，订单 500 元）：可用券「全场 8.5 折券」省 ¥75、应付 ¥425；不可用券「满 1000 减 200」标注「再买 500 元可用」
+  - 交互形态定稿为**抽屉**而非独立页：国内电商（淘宝/京东/拼多多）结算页选券均为弹层；独立页会丢失订单上下文（地址/清单/应付）且需要回传状态，反而多一步
+  - 补两个决策辅助标记：「最省」（抵扣最高那张，解决"选哪张划算"）与「即将过期」（3 天内到期，满足条件才出现）
+- **修复「课程时间已到仍显示未开始」**
+  - 现象：匠人把开课时间改到当天上午，列表/审核弹窗仍显示「未开始」，最长要等 10 分钟才变「进行中」
+  - 根因：课程 `status` **只靠定时任务推进**（`BookingTask` 每 10 分钟调 `autoFinishCourses`），保存课程时不重算。实测 14:05 改时间、14:08 仍是 0，14:10:30 任务跑到才变 1
+  - 处理：`CourseStatusEnum` 新增 `at(start, end, now)`（区间语义 `[start, end)`），三处调用——新建课程、编辑课程（`CourseServiceImpl.saveCourse`）、管理端审核通过（`AdminCourseServiceImpl.audit`，防止积压审批导致前台显示未开始、甚至能约已结束的课）
+  - 定时任务保留为兜底（停机、改系统时间、批量导入）；状态权威来源是时间，不是人维护的字段
+  - 实测：改成已结束区间 → 立刻 `status=2`；改回进行中区间 → 立刻 `status=1`；后台列表显示「进行中」
+- **核销签到增加时间窗口（防提前核销/代签）**
+  - 原来 `checkin()` 只校验状态，理论上开课前一周也能核销，签到失去"本人到场"的意义
+  - 新增 `Constants.CHECKIN_ADVANCE_MINUTES = 30` + `ErrorCode.CHECKIN_TOO_EARLY(5020)` / `CHECKIN_COURSE_ENDED(5021)`
+  - `BookingServiceImpl.assertCheckinWindow()`：窗口为 `[开课前 30 分钟, 课程结束]`；校验放在状态机之后（状态错优先提示状态）；课程时间为空时放行，不让脏数据把人卡死在签到台
+  - 扫码/输码与名单手动核销共用同一条 `checkin()`，两边都生效；核销台顶部提示补上窗口说明
+  - 实测：对已结束课程核销 → `5021 课程已于 2026-10-01 21:27 结束，无法核销`；把课程临时改到明天后核销 → `5020 还没到核销时间：开课（2026-10-28 10:00）前 30 分钟才可核销`（测试后课程时间已还原）
+
+- **核销台只列「课程未结束」的预约（`checkinable`）**
+  - 课程一结束就再也核销不了，原来的列表还会把它们列出来，点了白点一次
+  - `BookingQueryDTO.checkinable` + `selectBookingPage` 增加 `AND c.end_time >= NOW()`；`Checkin.vue` 请求带 `checkinable: true`
+  - 空状态改为解释原因（核销窗口、"已结束课程无法补签"、如何造演示数据），不再只写"暂无"
+  - 实测：临时把课程 1 改到进行中 → 列表出 5 条；码 `P86A7B8C` 核销 200（booking 12 → 已核销），重复核销 → `5014 该预约已核销`；测试后预约、状态日志、课程时间全部还原
+  - ⚠️ 副作用：若匠人名下所有已通过预约对应的课程都已结束，核销台就是空的（这是正确行为）

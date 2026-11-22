@@ -78,11 +78,15 @@
     -->
     <select id="selectMyCoursePage" resultType="com.lmf.heritage.module.course.vo.CourseListVO">
         SELECT
-        <include refid="voColumns"/>
+        <include refid="voColumns"/>,
+        c.audit_status AS auditStatus
         <include refid="voJoins"/>
         WHERE c.deleted = 0 AND c.craftsman_id = #{craftsmanId}
         <if test="q.status != null">
             AND c.status = #{q.status}
+        </if>
+        <if test="q.auditStatus != null">
+            AND c.audit_status = #{q.auditStatus}
         </if>
         <if test="q.keyword != null and q.keyword != ''">
             AND (c.title LIKE CONCAT('%', #{q.keyword}, '%')

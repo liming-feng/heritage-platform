@@ -2,7 +2,7 @@
   <div class="page">
     <div class="h-page-header">
       <h2>核销签到台</h2>
-      <span class="sub">学员出示核销码，扫码或输码完成签到</span>
+      <span class="sub">学员出示核销码，扫码或输码完成签到（开课前 30 分钟 ~ 课程结束可核销）</span>
     </div>
 
     <div class="main-grid">
@@ -25,16 +25,35 @@
             <el-button type="primary" :loading="checking" @click="doCheckin">核 销</el-button>
           </template>
         </el-input>
-        <el-divider>今日待核销</el-divider>
+        <el-divider>待核销（课程未结束）</el-divider>
         <div class="today-list">
           <div v-for="b in todayList" :key="b.id" class="today-item">
             <div>
               <b>{{ b.contactName }}</b>（{{ b.quota }}人）
               <div class="sub">{{ b.courseTitle }} · {{ dateTime(b.courseStartTime) }}</div>
             </div>
-            <el-button size="small" type="primary" plain @click="code = b.checkinCode || ''; $nextTick(doCheckin)">直接核销</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              plain
+              :disabled="!canCheckinNow(b)"
+              @click="code = b.checkinCode || ''; $nextTick(doCheckin)"
+            >
+              {{ canCheckinNow(b) ? '直接核销' : '未到核销时间' }}
+            </el-button>
           </div>
-          <el-empty v-if="!todayList.length" description="今日暂无待核销预约" :image-size="60" />
+          <el-empty v-if="!todayList.length" :image-size="60">
+            <template #description>
+              <div class="empty-title">当前没有可核销的预约</div>
+              <div class="empty-reason">
+                核销窗口是<b>开课前 30 分钟 ~ 课程结束</b>。如果你名下的预约都对应已结束的课程，
+                这里就会是空的 —— 它们已经过了核销期，不能再用核销码补签。
+              </div>
+              <div class="empty-reason">
+                想在演示时有数据：把某门课的结束时间改到将来，再让学员预约并通过即可。
+              </div>
+            </template>
+          </el-empty>
         </div>
       </div>
 
@@ -90,9 +109,26 @@ async function doCheckin() {
 }
 
 async function loadToday() {
-  // 近期已通过待核销的预约，用于「直接核销」
-  const data = await http.get('/craftsman/booking/list', { status: 1, pageNum: 1, pageSize: 8 })
+  // 只取「课程尚未结束」的已通过预约（checkinable）：
+  // 课程一结束就再也核销不了，列出来只会让人点了白点一次
+  const data = await http.get('/craftsman/booking/list', {
+    status: 1,
+    checkinable: true,
+    pageNum: 1,
+    pageSize: 8
+  })
   todayList.value = data.records || []
+}
+
+/** 与后端 Constants.CHECKIN_ADVANCE_MINUTES 一致：开课前 30 分钟才可核销 */
+const CHECKIN_ADVANCE_MINUTES = 30
+
+/** 现在是否已进入核销窗口（课程结束时间由后端过滤，这里只判开课前 30 分钟） */
+function canCheckinNow(row) {
+  if (!row.courseStartTime) return true
+  const start = new Date(String(row.courseStartTime).replace(/-/g, '/')).getTime()
+  if (Number.isNaN(start)) return true
+  return Date.now() >= start - CHECKIN_ADVANCE_MINUTES * 60 * 1000
 }
 
 onMounted(loadToday)
@@ -111,6 +147,8 @@ onMounted(loadToday)
 @keyframes pulse { 50% { background: #fbeeed; } }
 .scan-tip { font-weight: 600; margin-top: 10px; }
 .scan-sub { color: var(--h-text-second); font-size: 12px; margin-top: 4px; }
+.empty-title { font-size: 14px; color: var(--h-text); font-weight: 600; margin-bottom: 6px; }
+.empty-reason { font-size: 12px; color: var(--h-text-second); line-height: 1.7; max-width: 380px; margin: 0 auto 4px; }
 .today-item {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 12px; border-radius: 10px; background: var(--h-paper); margin-bottom: 8px;

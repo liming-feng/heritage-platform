@@ -11,6 +11,7 @@ import com.lmf.heritage.module.goods.vo.CraftsmanGoodsVO;
 import com.lmf.heritage.module.goods.vo.GoodsDetailVO;
 import com.lmf.heritage.module.goods.vo.GoodsListVO;
 import com.lmf.heritage.module.goods.vo.GoodsStockWarnVO;
+import com.lmf.heritage.module.goods.vo.GoodsViewTrendVO;
 
 import java.util.List;
 
@@ -96,4 +97,13 @@ public interface GoodsService extends IService<Goods> {
 
     /** 商品累计浏览量（数据库已回写值 + Redis 未回写增量），带归属校验 */
     int totalViewsOf(Long id);
+
+    /**
+     * 浏览量趋势：累计浏览量 + 最近 {@code days} 天按天补零的浏览点
+     *
+     * <p>只允许商品所属匠人（或管理员）查看，防横向越权。</p>
+     *
+     * @param days 天数，1~90，超出会被夹到边界
+     */
+    GoodsViewTrendVO viewTrendOf(Long id, int days);
 }

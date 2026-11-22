@@ -267,6 +267,13 @@
         ) rv ON rv.target_id = g.id
         <where>
             g.deleted = 0
+            <!-- 勾选导出：只在传了 ids 时生效，与其它筛选条件是 AND 关系 -->
+            <if test="q.ids != null and q.ids.size() > 0">
+                AND g.id IN
+                <foreach collection="q.ids" item="gid" open="(" separator="," close=")">
+                    #{gid}
+                </foreach>
+            </if>
             <if test="q.status != null">
                 AND g.status = #{q.status}
             </if>
@@ -380,5 +387,21 @@
             #{id}
         </foreach>
     </update>
+
+    <!--
+      按天统计浏览记录（匠人端「浏览量趋势」）
+      browse_history 是「用户 → 目标」的通用行为表，靠 target_type 区分商品/课程/资讯，
+      所以这里必须同时带 target_type 与 target_id，只用 id 会把课程的浏览算进商品。
+      browse_time 走 idx_browse（user_id, target_type, target_id）不够，最后按时间过滤，
+      数据量上来后可再加 (target_type, target_id, browse_time) 联合索引。
+    -->
+    <select id="countViewsByDay" resultType="java.util.Map">
+        SELECT DATE(browse_time) AS d, COUNT(*) AS c
+        FROM browse_history
+        WHERE target_type = #{targetType}
+        AND target_id = #{targetId}
+        AND browse_time &gt;= #{from}
+        GROUP BY DATE(browse_time)
+    </select>
 
 </mapper>

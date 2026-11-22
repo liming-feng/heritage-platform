@@ -4,7 +4,9 @@
       <h2>资讯管理</h2>
       <div class="head-right">
         <el-button size="small" :disabled="!selected.length" @click="batchPublish">批量上架（{{ selected.length }}）</el-button>
-        <el-button size="small" @click="exportList">导出 Excel</el-button>
+        <el-button size="small" @click="exportList">
+          {{ selection.length ? `导出所选（${selection.length}）` : '导出 Excel' }}
+        </el-button>
         <el-button type="primary" size="small" @click="openDialog()">发布资讯</el-button>
       </div>
     </div>
@@ -22,8 +24,9 @@
     </div>
 
     <div class="h-card table-card">
-      <el-table :data="list" v-loading="loading" @selection-change="(s) => (selected = s.filter((x) => x.status === 0))">
-        <el-table-column type="selection" width="42" :selectable="(row) => row.status === 0" />
+      <!-- 勾选列放开到所有行（勾选导出任意行）；批量上架仍只处理草稿 -->
+      <el-table :data="list" v-loading="loading" @selection-change="onSelectionChange">
+        <el-table-column type="selection" width="42" />
         <el-table-column label="标题" min-width="260">
           <template #default="{ row }">
             <el-tag v-if="row.isTop === 1" size="small" type="danger" effect="dark">顶</el-tag>
@@ -61,7 +64,9 @@
       <el-form :model="form" label-width="80px">
         <el-form-item label="标题" required><el-input v-model="form.title" maxlength="60" /></el-form-item>
         <el-form-item label="分类"><el-input v-model="form.categoryId" placeholder="分类 id（演示环境用数字）" style="width: 200px" /></el-form-item>
-        <el-form-item label="封面"><el-input v-model="form.cover" placeholder="图片地址" /></el-form-item>
+        <el-form-item label="封面">
+          <ImageUpload v-model="form.cover" :width="180" :height="105" tip="列表卡片按 16:9 裁切，不超过 5MB" />
+        </el-form-item>
         <el-form-item label="作者"><el-input v-model="form.author" style="width: 200px" /></el-form-item>
         <el-form-item label="标签"><el-input v-model="form.tags" placeholder="逗号分隔，如：剪纸,非遗" /></el-form-item>
         <el-form-item label="摘要"><el-input v-model="form.summary" type="textarea" :rows="2" maxlength="200" /></el-form-item>
@@ -87,9 +92,17 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { http, saveBlob } from '@/utils/request'
 import { dateTime } from '@/utils/format'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const list = ref([])
 const selected = ref([])
+/** 原始勾选（含已发布），只用于勾选导出 */
+const selection = ref([])
+
+function onSelectionChange(rows) {
+  selection.value = rows
+  selected.value = rows.filter((x) => x.status === 0)
+}
 const total = ref(0)
 const loading = ref(false)
 const query = reactive({ pageNum: 1, pageSize: 10, keyword: '', status: undefined, isTop: undefined })
@@ -153,8 +166,9 @@ async function del(row) {
 }
 
 async function exportList() {
-  const res = await http.download('/admin/article/export', { ...query })
-  saveBlob(res, '资讯列表.xlsx')
+  const ids = selection.value.map((r) => r.id).join(',')
+  const res = await http.download('/admin/article/export', { ...query, ids: ids || undefined })
+  saveBlob(res, ids ? '资讯列表_所选.xlsx' : '资讯列表.xlsx')
 }
 
 onMounted(load)

@@ -84,6 +84,68 @@ export const ORDER_STATUS = {
 
 export const ROLE_NAME = { 1: '普通用户', 2: '匠人', 3: '管理员' }
 
+/** 退款状态 0无 1申请中 2已同意 3已驳回 */
+export const REFUND_STATUS = {
+  1: { text: '退款申请中', type: 'warning' },
+  2: { text: '已同意退款', type: 'success' },
+  3: { text: '已驳回退款', type: 'danger' }
+}
+
+/**
+ * 百分比展示。
+ *
+ * <b>注意量纲</b>：后端所有 rate 类字段（goodRate / repliedRate / useRate /
+ * receiveRate / usedRate / within24hRate …）都由 `percent()` / `rate()`
+ * 算成 **0–100 的百分数**（`100.0` 表示 100%，`57.1` 表示 57.1%），
+ * 所以前端只需补一个 `%`，**不能再乘 100** —— 乘了就会出现「好评率 10000%」。
+ *
+ * 反过来，纯前端自己算的比例（如「已约 3/10」）才需要 ×100，
+ * 那种地方直接用 Math.round，不要走这个函数。
+ *
+ * @param {number|string} v 0–100 的百分数
+ * @param {string} dash 空值占位符
+ */
+export function pct(v, dash = '—') {
+  if (v === null || v === undefined || v === '') return dash
+  const n = Number(v)
+  if (Number.isNaN(n)) return dash
+  return Math.round(n * 10) / 10 + '%'
+}
+
+/**
+ * 把订单的 addressSnapshot 还原成可读地址。
+ *
+ * 下单时会把收货地址整条 JSON 快照进订单（用于「地址后来被改/删了，订单上仍是下单时那份」），
+ * 直接渲染就是一段原始 JSON。这里做三件事：
+ *  - 解析失败或不是 JSON（历史数据可能存的是纯文本）就原样返回，不吞掉信息；
+ *  - 省、市、区拼接时去重（直辖市常见 province == city）；
+ *  - 只取展示需要的字段，id / userId / createTime 这些对用户没有意义。
+ *
+ * @param {string|object} v addressSnapshot
+ * @returns {string} 形如「江苏省南京市鼓楼区 中山北路 100 号 XX 大厦 1201 室」
+ */
+export function addressText(v) {
+  if (!v) return '—'
+  let obj = v
+  if (typeof v === 'string') {
+    const s = v.trim()
+    if (!s.startsWith('{')) return s || '—'
+    try {
+      obj = JSON.parse(s)
+    } catch {
+      return s
+    }
+  }
+  if (!obj || typeof obj !== 'object') return '—'
+  const parts = []
+  ;[obj.province, obj.city, obj.district].forEach((p) => {
+    if (p && !parts.includes(p)) parts.push(p)
+  })
+  const region = parts.join('')
+  const detail = (obj.detail || '').trim()
+  return (region + (detail ? ' ' + detail : '')).trim() || '—'
+}
+
 /** 图片地址兜底：后端返回 /api/uploads/... 直接可用，空值用占位 SVG */
 export const PLACEHOLDER =
   'data:image/svg+xml;utf8,' +

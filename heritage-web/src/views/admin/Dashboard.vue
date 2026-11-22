@@ -8,13 +8,22 @@
       </div>
     </div>
 
-    <!-- 审核待办 -->
+    <!-- 审核待办：每一条都能点进去，落地页自动带上对应筛选 -->
     <div class="todo-bar h-card">
       <span class="t-label">待办：</span>
-      <el-tag type="warning" effect="plain">待审核商品 {{ ov.waitGoods }}</el-tag>
-      <el-tag type="warning" effect="plain">待审核课程 {{ ov.waitCourse }}</el-tag>
-      <el-tag type="warning" effect="plain">待审核匠人 {{ ov.waitCraftsman }}</el-tag>
-      <el-tag type="info" effect="plain">未处理反馈 {{ ov.waitFeedback }}</el-tag>
+      <button
+        v-for="t in todoItems"
+        :key="t.label"
+        type="button"
+        class="t-chip"
+        :class="[t.tone, { zero: !t.count }]"
+        :title="t.count ? `查看${t.label}` : `暂无${t.label}`"
+        @click="t.count && goTodos(t)"
+      >
+        <span>{{ t.label }}</span>
+        <b>{{ t.count }}</b>
+        <i v-if="t.count">›</i>
+      </button>
     </div>
 
     <el-row :gutter="14">
@@ -63,8 +72,32 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { http } from '@/utils/request'
+
+const router = useRouter()
+
+/**
+ * 待办条的四项。
+ * 每一项都对应「列表页 + 一个筛选参数」，参数名与目标页的 query 一一对应：
+ *   auditStatus=0（待审核） / status=0（反馈待处理）
+ *
+ * 这里用**路由 name** 而不是手写 path：真实路径是 /admin/craftsmans（复数带 s），
+ * 手写成 /admin/craftsmen 就会 404 —— name 由 router 保证唯一，改路径也不会断。
+ *
+ * 数字为 0 时保持置灰不可点，避免点进去看到一个空列表还以为没生效。
+ */
+const todoItems = computed(() => [
+  { label: '待审核商品', count: Number(ov.value.waitGoods || 0), tone: 'warn', name: 'AdminGoods', query: { auditStatus: 0 } },
+  { label: '待审核课程', count: Number(ov.value.waitCourse || 0), tone: 'warn', name: 'AdminCourses', query: { auditStatus: 0 } },
+  { label: '待审核匠人', count: Number(ov.value.waitCraftsman || 0), tone: 'warn', name: 'AdminCraftsmans', query: { auditStatus: 0 } },
+  { label: '未处理反馈', count: Number(ov.value.waitFeedback || 0), tone: 'info', name: 'AdminFeedbacks', query: { status: 0 } }
+])
+
+function goTodos(item) {
+  router.push({ name: item.name, query: item.query })
+}
 
 const ov = ref({})
 const charts = []
@@ -203,6 +236,37 @@ onUnmounted(() => charts.forEach((c) => c.dispose()))
 .c-val { font-size: 22px; font-weight: 800; margin-top: 4px; }
 .todo-bar { display: flex; align-items: center; gap: 12px; padding: 10px 18px; margin-bottom: 12px; flex-wrap: wrap; }
 .t-label { font-size: 13px; color: var(--h-text-second); }
+.t-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--h-border);
+  border-radius: 8px;
+  background: var(--h-paper);
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--h-ink);
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+}
+.t-chip b { font-size: 15px; font-weight: 700; }
+.t-chip i { font-style: normal; color: var(--h-text-second); }
+.t-chip.warn b { color: #b98900; }
+.t-chip.info b { color: var(--h-text-second); }
+.t-chip:hover {
+  border-color: var(--h-primary);
+  color: var(--h-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--h-shadow);
+}
+.t-chip:hover b,
+.t-chip:hover i { color: var(--h-primary); }
+/* 数字为 0：置灰且不可点，避免点进去空空如也还以为是没反应 */
+.t-chip.zero { cursor: default; opacity: 0.55; background: transparent; }
+.t-chip.zero:hover { transform: none; box-shadow: none; border-color: var(--h-border); color: var(--h-ink); }
+.t-chip.zero:hover b { color: #b98900; }
+.t-chip.zero.info:hover b { color: var(--h-text-second); }
 .chart-card { padding: 14px 16px 8px; margin-bottom: 14px; }
 .ch-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
 .chart { height: 240px; }

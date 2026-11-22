@@ -56,7 +56,7 @@ public class CraftsmanBookingController {
 
     @Operation(summary = "预约列表",
             description = "只看自己课程的预约；支持状态 status、课程 courseId、关键词 keyword、"
-                    + "超时未审 onlyTimeout=true 筛选、分页")
+                    + "超时未审 onlyTimeout=true、只看课程未结束 checkinable=true（签到台用）筛选、分页")
     @GetMapping("/list")
     public Result<PageResult<BookingVO>> list(BookingQueryDTO query) {
         return Result.success(bookingService.craftsmanBookings(query));

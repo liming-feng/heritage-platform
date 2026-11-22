@@ -46,7 +46,8 @@
               <span :class="row.totalQuota && row.remainQuota / row.totalQuota <= 0.2 ? 'level-danger' : ''">
                 {{ row.remainQuota }}/{{ row.totalQuota }}
               </span>
-              <div class="used">{{ row.usedRate ? Math.round(row.usedRate * 100) : Math.round((row.bookedQuota / (row.totalQuota || 1)) * 100) }}% 已约</div>
+              <!-- usedRate 后端给的是 0–100，直接补 %；没有该字段时用本地比例兜底 -->
+              <div class="used">{{ row.usedRate != null ? pct(row.usedRate) : Math.round((row.bookedQuota / (row.totalQuota || 1)) * 100) + '%' }} 已约</div>
             </template>
           </el-table-column>
           <el-table-column prop="bookingCount" label="预约" width="70" />
@@ -55,7 +56,10 @@
           </el-table-column>
           <el-table-column label="审核" width="100">
             <template #default="{ row }">
-              <el-tag :type="AUDIT_STATUS[row.auditStatus]?.type" size="small">{{ row.auditStatusDesc }}</el-tag>
+              <el-tag v-if="row.auditStatusDesc" :type="AUDIT_STATUS[row.auditStatus]?.type" size="small">
+                {{ row.auditStatusDesc }}
+              </el-tag>
+              <span v-else style="color: var(--h-text-second)">—</span>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="230" fixed="right">
@@ -103,7 +107,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { http } from '@/utils/request'
-import { img, onImgErr, dateTime, COURSE_STATUS, AUDIT_STATUS } from '@/utils/format'
+import { img, onImgErr, dateTime, pct, COURSE_STATUS, AUDIT_STATUS } from '@/utils/format'
 
 const view = ref('list')
 const list = ref([])

@@ -24,6 +24,16 @@ public class BookingQueryDTO {
     @Schema(description = "匠人端专用：只看已超过审核时限仍未处理的预约")
     private Boolean onlyTimeout;
 
+    /**
+     * 签到台专用：只看「课程尚未结束」的预约。
+     *
+     * <p>核销窗口是 [开课前 30 分钟, 课程结束]，课程一旦结束就再也核销不了。
+     * 签到台原来把历次已通过但早已结课的预约全列出来，匠人点了只会收到
+     * 「课程已结束，无法核销」——列表里就不该出现已经过期的东西。</p>
+     */
+    @Schema(description = "签到台专用：只看课程尚未结束的预约")
+    private Boolean checkinable;
+
     @Schema(description = "页码，从 1 开始")
     private Long pageNum = 1L;
 

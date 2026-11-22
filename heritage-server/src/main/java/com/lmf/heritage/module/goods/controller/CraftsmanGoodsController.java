@@ -12,6 +12,7 @@ import com.lmf.heritage.module.goods.service.GoodsService;
 import com.lmf.heritage.module.goods.vo.CraftsmanGoodsVO;
 import com.lmf.heritage.module.goods.vo.GoodsDetailVO;
 import com.lmf.heritage.module.goods.vo.GoodsStockWarnVO;
+import com.lmf.heritage.module.goods.vo.GoodsViewTrendVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -107,5 +108,15 @@ public class CraftsmanGoodsController {
     @GetMapping("/{id}/views")
     public Result<Integer> views(@PathVariable("id") Long id) {
         return Result.success(goodsService.totalViewsOf(id));
+    }
+
+    @Operation(summary = "浏览量趋势",
+            description = "返回累计浏览量 + 最近 days 天按天补零的浏览点。"
+                    + "点数据来自 browse_history（有行为记录的登录用户），"
+                    + "因此其求和与累计访问量不相等——累计量含未登录等请求")
+    @GetMapping("/{id}/view-trend")
+    public Result<GoodsViewTrendVO> viewTrend(@PathVariable("id") Long id,
+                                              @RequestParam(value = "days", defaultValue = "7") Integer days) {
+        return Result.success(goodsService.viewTrendOf(id, days == null ? 7 : days));
     }
 }

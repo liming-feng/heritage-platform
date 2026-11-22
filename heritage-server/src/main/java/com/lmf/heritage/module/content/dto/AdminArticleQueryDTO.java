@@ -46,6 +46,10 @@ public class AdminArticleQueryDTO {
     @Schema(description = "每页条数，默认 10")
     private Long pageSize = 10L;
 
+    /** 勾选导出：只导出这几篇资讯；为空表示按当前筛选条件导出。列表接口忽略该参数 */
+    @Schema(description = "勾选导出的资讯 id（逗号分隔或重复参数）；不传表示按筛选条件导出")
+    private java.util.List<Long> ids;
+
     public void normalize() {
         if (pageNum == null || pageNum < 1) {
             pageNum = 1L;

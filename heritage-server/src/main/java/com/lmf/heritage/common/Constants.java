@@ -128,6 +128,14 @@ public interface Constants {
     int CHECKIN_WAY_CODE = 1;
     int CHECKIN_WAY_MANUAL = 2;
 
+    /**
+     * 核销时间窗口：开课前多少分钟开放核销（窗口截止 = 课程结束时间）。
+     *
+     * <p>没有窗口的话「提前一周核销」也能成功，签到就失去了「本人到场」的意义，
+     * 也挡不住代签。设为 30 分钟是留给学员提前到场的合理缓冲。</p>
+     */
+    int CHECKIN_ADVANCE_MINUTES = 30;
+
     /** 评价类型 */
     int REVIEW_TYPE_GOODS = 1;
     int REVIEW_TYPE_COURSE = 2;

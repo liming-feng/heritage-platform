@@ -24,6 +24,14 @@ public class CourseQueryDTO {
     @Schema(description = "课程状态 0未开始 1进行中 2已结束，不传表示全部")
     private Integer status;
 
+    /**
+     * 审核状态过滤，只对匠人端「我的课程」生效。
+     *
+     * <p>前台列表恒为 audit_status=1，传了也没有意义，SQL 里不会用到这个字段。</p>
+     */
+    @Schema(description = "审核状态 0待审核 1已通过 2已驳回，仅匠人端有效")
+    private Integer auditStatus;
+
     @Schema(description = "是否只看还能预约的（未结束且未过预约截止）")
     private Boolean onlyBookable;
 

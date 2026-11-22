@@ -5,7 +5,7 @@
     <div class="stat-cards">
       <div class="stat h-card"><div class="s-label">总评价</div><div class="s-val">{{ stat.total ?? 0 }}</div></div>
       <div class="stat h-card"><div class="s-label">平均评分</div><div class="s-val">{{ stat.avgRating ?? '—' }}</div></div>
-      <div class="stat h-card"><div class="s-label">好评率</div><div class="s-val">{{ stat.goodRate ? Math.round(stat.goodRate * 100) + '%' : '—' }}</div></div>
+      <div class="stat h-card"><div class="s-label">好评率</div><div class="s-val">{{ pct(stat.goodRate) }}</div></div>
       <div class="stat h-card"><div class="s-label">未回复</div><div class="s-val" :class="{ alert: stat.unrepliedCount > 0 }">{{ stat.unrepliedCount ?? 0 }}</div></div>
     </div>
 
@@ -60,9 +60,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { http } from '@/utils/request'
-import { img, onImgErr, dateTime } from '@/utils/format'
+import { img, onImgErr, dateTime, pct } from '@/utils/format'
+
+const route = useRoute()
 
 const stat = ref({})
 const list = ref([])
@@ -80,7 +83,9 @@ async function load() {
     const data = await http.get('/craftsman/review/list', {
       type: query.type ?? undefined,
       rating: query.rating ?? undefined,
-      replied: query.replied || undefined,
+      // 注意语义相反：复选框是「只看未回复」，而后端 replied=true 表示「只看已回复」，
+      // 所以勾选时要传 false（以前直接传 true，结果勾了反而只剩已回复的）
+      replied: query.replied ? false : undefined,
       pageNum: query.pageNum,
       pageSize: query.pageSize
     })
@@ -111,7 +116,11 @@ async function submitReply() {
   load()
 }
 
-onMounted(load)
+onMounted(() => {
+  // 工作台「未回复评价」带 ?replied=1 跳过来，直接勾上「只看未回复」
+  if (route.query.replied === '1') query.replied = true
+  load()
+})
 </script>
 
 <style scoped>

@@ -39,19 +39,24 @@
         <div class="h-card chart-card">
           <div class="h-section-title">待办提醒</div>
           <div class="todos">
-            <div class="todo" @click="$router.push('/craftsman/orders')">
+            <!--
+              每条待办都带筛选参数跳转：点进去要直接看到「这批要处理的东西」，
+              而不是落到一个未筛选的列表让用户再点一次。
+              参数名与目标页的 query 一一对应（tab / stockWarn / replied）。
+            -->
+            <div class="todo" @click="goTodos('/craftsman/orders', { tab: '1' })">
               <span>待发货订单</span><b class="num" :class="{ alert: todo.waitDeliverOrders > 0 }">{{ todo.waitDeliverOrders }}</b>
             </div>
-            <div class="todo" @click="$router.push('/craftsman/bookings')">
+            <div class="todo" @click="goTodos('/craftsman/bookings', { tab: '0' })">
               <span>待审核预约</span><b class="num" :class="{ alert: todo.waitAuditBookings > 0 }">{{ todo.waitAuditBookings }}</b>
             </div>
-            <div class="todo" @click="$router.push('/craftsman/orders')">
+            <div class="todo" @click="goTodos('/craftsman/orders', { tab: 'refund' })">
               <span>退款申请</span><b class="num" :class="{ alert: todo.applyingRefunds > 0 }">{{ todo.applyingRefunds }}</b>
             </div>
-            <div class="todo" @click="$router.push('/craftsman/goods')">
+            <div class="todo" @click="goTodos('/craftsman/goods', { stockWarn: '1' })">
               <span>库存预警商品</span><b class="num" :class="{ alert: todo.stockWarnGoods > 0 }">{{ todo.stockWarnGoods }}</b>
             </div>
-            <div class="todo" @click="$router.push('/craftsman/reviews')">
+            <div class="todo" @click="goTodos('/craftsman/reviews', { replied: '1' })">
               <span>未回复评价</span><b class="num" :class="{ alert: todo.unrepliedReviews > 0 }">{{ todo.unrepliedReviews }}</b>
             </div>
           </div>
@@ -79,7 +84,15 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
+import { useRouter } from 'vue-router'
 import { http } from '@/utils/request'
+
+const router = useRouter()
+
+/** 待办跳转：带上筛选参数，落地页直接呈现待处理的那一批 */
+function goTodos(path, query) {
+  router.push({ path, query })
+}
 
 const ov = ref({})
 const todo = ref({})

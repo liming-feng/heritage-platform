@@ -75,6 +75,8 @@ public enum ErrorCode {
     BOOKING_CONFIG_NOT_FOUND(5017, "预约规则配置项不存在"),
     BOOKING_QUEUE_BUSY(5018, "当前预约人数较多，请稍后重试"),
     COURSE_STATUS_ERROR(5019, "当前课程状态不允许该操作"),
+    CHECKIN_TOO_EARLY(5020, "尚未到核销时间，开课前 30 分钟才可核销"),
+    CHECKIN_COURSE_ENDED(5021, "课程已结束，无法核销"),
 
     /* ========== 优惠券 6xxxx ========== */
     COUPON_NOT_FOUND(6001, "优惠券不存在"),

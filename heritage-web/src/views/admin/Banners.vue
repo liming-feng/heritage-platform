@@ -48,7 +48,9 @@
     <el-dialog v-model="dialog" :title="form.id ? '编辑轮播' : '新增轮播'" width="460px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="标题" required><el-input v-model="form.title" maxlength="30" /></el-form-item>
-        <el-form-item label="图片" required><el-input v-model="form.image" placeholder="图片地址" /></el-form-item>
+        <el-form-item label="图片" required>
+          <ImageUpload v-model="form.image" :width="220" :height="82" tip="首页轮播建议 16:6 横图，不超过 5MB" />
+        </el-form-item>
         <el-form-item label="跳转链接"><el-input v-model="form.linkUrl" placeholder="/goods/1 等" /></el-form-item>
         <el-form-item label="位置">
           <el-select v-model="form.position" style="width: 100%">
@@ -72,6 +74,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { http } from '@/utils/request'
 import { img, onImgErr } from '@/utils/format'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const list = ref([])
 const total = ref(0)

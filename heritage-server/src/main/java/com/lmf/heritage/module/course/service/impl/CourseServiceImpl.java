@@ -149,8 +149,8 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             course.setRemainQuota(dto.getTotalQuota());
             course.setBookingDeadline(bookingDeadline);
             course.setCancelDeadline(cancelDeadline);
-            // 课程状态由定时任务按时间推进，这里新建一律是「未开始」
-            course.setStatus(CourseStatusEnum.NOT_STARTED.getCode());
+            // 状态按「当前时间」推导：新建时把开课时间填成过去（补录、演示）也要立刻显示进行中/已结束
+            course.setStatus(statusAt(dto.getStartTime(), dto.getEndTime()));
             // 匠人自主发布、暂免平台审核（管理端课程审核在 P8 接入，先让前台能看到）
             course.setAuditStatus(1);
             course.setViewCount(0);
@@ -176,6 +176,9 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
         exist.setRemainQuota(newRemain);
         exist.setBookingDeadline(bookingDeadline);
         exist.setCancelDeadline(cancelDeadline);
+        // 改了开课/结束时间就立刻重算状态，否则最多要等 10 分钟定时任务才纠正
+        // （典型现象：把开课时间改到今天上午，页面还显示「未开始」）
+        exist.setStatus(statusAt(dto.getStartTime(), dto.getEndTime()));
         updateById(exist);
 
         // 课程信息变了，首页/列表缓存必须失效，否则前台还看到旧的名额与时间
@@ -337,6 +340,18 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
      * 四个条件，前端自己判断极易漏项、且和後端规则漂移。统一在这里算好后，
      * 前端只负责把 {@code canBook} 渲染成按钮的可用状态即可。</p>
      */
+    /**
+     * 按当前时间推导课程状态（0未开始 1进行中 2已结束）
+     *
+     * <p>课程状态的权威来源是「时间」而不是某个需要人维护的字段。定时任务每 10 分钟纠偏一次，
+     * 但「改完开课时间马上刷新页面」的用户会看到最长 10 分钟的错误状态
+     * （已经把开课时间改到今天上午，列表还写着「未开始」）。所以写入时就先算一次，
+     * 定时任务退化为兜底手段（停机、改系统时间、批量导入等场景）。</p>
+     */
+    private int statusAt(LocalDateTime start, LocalDateTime end) {
+        return CourseStatusEnum.at(start, end, LocalDateTime.now()).getCode();
+    }
+
     private List<CourseListVO> decorate(List<CourseListVO> list) {
         if (list == null || list.isEmpty()) {
             return List.of();
@@ -346,6 +361,10 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
 
         for (CourseListVO vo : list) {
             vo.setStatusDesc(CourseStatusEnum.descOf(vo.getStatus()));
+            // 审核状态文案与管理端共用同一套映射（同包静态方法），避免「已通过/通过」两套叫法
+            if (vo.getAuditStatus() != null) {
+                vo.setAuditStatusDesc(AdminCourseServiceImpl.auditText(vo.getAuditStatus()));
+            }
 
             // 倒计时：以预约截止时间为准（没设则回落到开课时间）
             LocalDateTime deadline = vo.getBookingDeadline() != null ? vo.getBookingDeadline() : vo.getStartTime();

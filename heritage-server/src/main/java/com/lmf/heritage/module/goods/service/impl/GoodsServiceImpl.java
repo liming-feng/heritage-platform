@@ -30,6 +30,7 @@ import com.lmf.heritage.module.goods.vo.GoodsDetailVO;
 import com.lmf.heritage.module.goods.vo.GoodsListVO;
 import com.lmf.heritage.module.goods.vo.GoodsSpecVO;
 import com.lmf.heritage.module.goods.vo.GoodsStockWarnVO;
+import com.lmf.heritage.module.goods.vo.GoodsViewTrendVO;
 import com.lmf.heritage.module.review.service.ReviewService;
 import com.lmf.heritage.util.CacheHelper;
 import com.lmf.heritage.util.CraftsmanHelper;
@@ -38,9 +39,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 商品服务实现
@@ -187,6 +191,46 @@ public class GoodsServiceImpl extends ServiceImpl<GoodsMapper, Goods> implements
         BusinessException.throwIf(goods == null, ErrorCode.GOODS_NOT_FOUND);
         craftsmanHelper.requireSelf(goods.getCraftsmanId());
         return totalViews(id, goods.getViewCount());
+    }
+
+    @Override
+    public GoodsViewTrendVO viewTrendOf(Long id, int days) {
+        Goods goods = getById(id);
+        BusinessException.throwIf(goods == null, ErrorCode.GOODS_NOT_FOUND);
+        craftsmanHelper.requireSelf(goods.getCraftsmanId());
+
+        // 天数夹在 1~90：前端传 0 或负数会让区间变成空，传 1000 会让补零循环铺满内存
+        int span = Math.min(Math.max(days, 1), 90);
+        LocalDate today = LocalDate.now();
+        LocalDate from = today.minusDays(span - 1L);
+
+        List<Map<String, Object>> rows = baseMapper.countViewsByDay(
+                Constants.TARGET_GOODS, id, from.atStartOfDay());
+        Map<String, Integer> byDay = new HashMap<>(rows.size() * 2);
+        for (Map<String, Object> row : rows) {
+            Object d = row.get("d");
+            if (d == null) {
+                continue;
+            }
+            Object c = row.get("c");
+            // DATE() 返回 java.sql.Date，toString 即 yyyy-MM-dd，与下面补零用的 key 对齐
+            byDay.put(String.valueOf(d), c == null ? 0 : ((Number) c).intValue());
+        }
+
+        List<GoodsViewTrendVO.Point> points = new ArrayList<>(span);
+        for (int i = 0; i < span; i++) {
+            LocalDate day = from.plusDays(i);
+            GoodsViewTrendVO.Point p = new GoodsViewTrendVO.Point();
+            p.setDate(day.toString());
+            p.setDateText(day.getMonthValue() + "月" + day.getDayOfMonth() + "日");
+            p.setCount(byDay.getOrDefault(day.toString(), 0));
+            points.add(p);
+        }
+
+        GoodsViewTrendVO vo = new GoodsViewTrendVO();
+        vo.setTotal(totalViews(id, goods.getViewCount()));
+        vo.setPoints(points);
+        return vo;
     }
 
     @Override

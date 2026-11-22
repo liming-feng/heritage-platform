@@ -5,7 +5,9 @@
       <div class="head-right">
         <el-button size="small" :disabled="!selected.length" @click="batchAudit(true)">批量通过</el-button>
         <el-button size="small" :disabled="!selected.length" @click="batchAudit(false)">批量驳回</el-button>
-        <el-button size="small" @click="exportGoods">导出 Excel</el-button>
+        <el-button size="small" @click="exportGoods">
+          {{ selection.length ? `导出所选（${selection.length}）` : '导出 Excel' }}
+        </el-button>
       </div>
     </div>
 
@@ -27,8 +29,13 @@
     </div>
 
     <div class="h-card table-card">
-      <el-table :data="list" v-loading="loading" @selection-change="(s) => (selected = s.filter((x) => x.auditStatus === 0))">
-        <el-table-column type="selection" width="42" :selectable="(row) => row.auditStatus === 0" />
+      <!--
+        勾选列放开到所有行：勾选导出要能勾任何商品。
+        批量审核仍只处理「待审核」的那些（selection = 全部勾选，selected = 其中的待审核），
+        所以批量按钮不会被已审核的行污染。
+      -->
+      <el-table :data="list" v-loading="loading" @selection-change="onSelectionChange">
+        <el-table-column type="selection" width="42" />
         <el-table-column label="商品" min-width="230">
           <template #default="{ row }">
             <div class="g-cell">
@@ -67,6 +74,35 @@
         <el-pagination v-model:current-page="query.pageNum" :page-size="query.pageSize" :total="Number(total)" layout="total, prev, pager, next" background @current-change="load" />
       </div>
     </div>
+
+    <DetailDialog v-model="goodsDialog" :title="`商品审核 · ${goodsInfo.name || ''}`" :loading="goodsLoading" width="760px">
+      <div v-if="(goodsInfo.images || []).length" class="d-imgs">
+        <img v-for="(u, i) in goodsInfo.images" :key="i" :src="img(u)" alt="" @error="onImgErr" />
+      </div>
+
+      <div class="d-sec">基本信息</div>
+      <el-descriptions :column="3" size="small" border>
+        <el-descriptions-item label="分类">{{ goodsInfo.categoryName || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="匠人">{{ goodsInfo.craftsmanName || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="售价">¥{{ goodsInfo.price ?? '—' }}</el-descriptions-item>
+        <el-descriptions-item label="原价">¥{{ goodsInfo.originalPrice ?? '—' }}</el-descriptions-item>
+        <el-descriptions-item label="简介" :span="2">{{ goodsInfo.description || '—' }}</el-descriptions-item>
+      </el-descriptions>
+
+      <template v-if="(goodsInfo.specs || []).length">
+        <div class="d-sec">规格<span class="d-sec-extra">共 {{ goodsInfo.specs.length }} 个</span></div>
+        <el-table :data="goodsInfo.specs" size="small" max-height="200">
+          <el-table-column prop="specName" label="规格" min-width="160" />
+          <el-table-column label="价格" width="120" align="right">
+            <template #default="{ row }">¥{{ row.price }}</template>
+          </el-table-column>
+          <el-table-column prop="stock" label="库存" width="90" align="center" />
+        </el-table>
+      </template>
+
+      <div class="d-sec">图文详情</div>
+      <div class="d-text">{{ goodsInfo.detail || '—' }}</div>
+    </DetailDialog>
   </div>
 </template>
 
@@ -75,9 +111,25 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http, saveBlob } from '@/utils/request'
 import { img, onImgErr, GOODS_STATUS, AUDIT_STATUS } from '@/utils/format'
+import DetailDialog from '@/components/DetailDialog.vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const list = ref([])
 const selected = ref([])
+/** 原始勾选（含已审核/已上架的），只用于勾选导出 */
+const selection = ref([])
+
+/* 商品详情弹窗 */
+const goodsDialog = ref(false)
+const goodsLoading = ref(false)
+const goodsInfo = ref({})
+
+function onSelectionChange(rows) {
+  selection.value = rows
+  selected.value = rows.filter((x) => x.auditStatus === 0)
+}
 const categories = ref([])
 const total = ref(0)
 const loading = ref(false)
@@ -105,16 +157,14 @@ function reload() {
 }
 
 async function detail(row) {
-  const d = await http.get(`/admin/goods/${row.id}/audit-detail`)
-  const imgs = (d.images || []).map((u) => `<img src="${img(u)}" style="width:90px;height:90px;object-fit:cover;border-radius:6px;margin:3px" />`).join('')
-  const specs = (d.specs || []).map((s) => `${s.specName} ¥${s.price}（库存${s.stock}）`).join('；') || '无规格'
-  ElMessageBox.alert(
-    `${imgs || ''}<br/>分类：${d.categoryName} · 匠人：${d.craftsmanName}<br/>` +
-    `价格：¥${d.price}（原价 ¥${d.originalPrice}）<br/>规格：${specs}<br/>` +
-    `简介：${d.description || '—'}<br/>详情：${(d.detail || '—').slice(0, 200)}`,
-    `商品审核 · ${d.name}`,
-    { dangerouslyUseHTMLString: true, customStyle: { maxWidth: '620px' } }
-  )
+  goodsInfo.value = {}
+  goodsDialog.value = true
+  goodsLoading.value = true
+  try {
+    goodsInfo.value = await http.get(`/admin/goods/${row.id}/audit-detail`)
+  } finally {
+    goodsLoading.value = false
+  }
 }
 
 async function audit(row, pass) {
@@ -147,11 +197,17 @@ async function offShelf(row) {
 }
 
 async function exportGoods() {
-  const res = await http.download('/admin/goods/export', { ...query })
-  saveBlob(res, '商品列表.xlsx')
+  // 勾选了就只导勾选的，没勾按当前筛选条件导全部
+  const ids = selection.value.map((r) => r.id).join(',')
+  const res = await http.download('/admin/goods/export', { ...query, ids: ids || undefined })
+  saveBlob(res, ids ? '商品列表_所选.xlsx' : '商品列表.xlsx')
 }
 
 onMounted(() => {
+  // 工作台待办「待审核商品」带 ?auditStatus=0 跳过来
+  if (route.query.auditStatus != null && route.query.auditStatus !== '') {
+    query.auditStatus = Number(route.query.auditStatus)
+  }
   load()
   http.get('/admin/category/list', { pageNum: 1, pageSize: 100 }).then((d) => (categories.value = d.records || [])).catch(() => {})
 })

@@ -8,7 +8,7 @@
       <div class="stat h-card"><div class="s-label">处理中</div><div class="s-val">{{ stat.processingCount ?? '—' }}</div></div>
       <div class="stat h-card"><div class="s-label">已完成</div><div class="s-val">{{ stat.doneCount ?? '—' }}</div></div>
       <div class="stat h-card"><div class="s-label">平均处理时长</div><div class="s-val">{{ stat.avgHandleHours != null ? stat.avgHandleHours + 'h' : '—' }}</div></div>
-      <div class="stat h-card"><div class="s-label">24h 完成率</div><div class="s-val">{{ stat.within24hRate != null ? Math.round(stat.within24hRate * 100) + '%' : '—' }}</div></div>
+      <div class="stat h-card"><div class="s-label">24h 完成率</div><div class="s-val">{{ pct(stat.within24hRate) }}</div></div>
     </div>
 
     <div class="toolbar h-card">
@@ -49,6 +49,27 @@
         <el-pagination v-model:current-page="query.pageNum" :page-size="query.pageSize" :total="Number(total)" layout="total, prev, pager, next" background @current-change="load" />
       </div>
     </div>
+
+    <DetailDialog v-model="fbDialog" :title="`反馈 #${fbRow.id || ''}`" width="640px">
+      <el-descriptions :column="3" size="small" border>
+        <el-descriptions-item label="提交人">{{ fbRow.nickname || fbRow.username || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="类型">{{ fbRow.typeDesc || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag size="small" :type="fbRow.status === 2 ? 'success' : fbRow.status === 1 ? 'primary' : 'warning'">
+            {{ fbRow.statusDesc || '—' }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="联系方式" :span="2">{{ fbRow.contact || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="提交时间">{{ dateTime(fbRow.createTime) }}</el-descriptions-item>
+      </el-descriptions>
+
+      <div class="d-sec">反馈内容</div>
+      <div class="d-text">{{ fbRow.content || '—' }}</div>
+
+      <div class="d-sec">处理记录</div>
+      <div class="d-text" :class="{ muted: !fbRow.reply }">{{ fbRow.reply || '暂未回复' }}</div>
+      <div class="d-sum" style="margin-top: 6px">处理时间：{{ fbRow.handleTime ? dateTime(fbRow.handleTime) : '—' }}</div>
+    </DetailDialog>
   </div>
 </template>
 
@@ -56,12 +77,20 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http, saveBlob } from '@/utils/request'
-import { dateTime } from '@/utils/format'
+import { dateTime, pct } from '@/utils/format'
+import DetailDialog from '@/components/DetailDialog.vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const stat = ref({})
 const list = ref([])
 const total = ref(0)
 const loading = ref(false)
+
+/* 反馈详情弹窗 */
+const fbDialog = ref(false)
+const fbRow = ref({})
 const query = reactive({ pageNum: 1, pageSize: 10, status: undefined, type: undefined })
 
 async function load() {
@@ -82,11 +111,8 @@ function reload() {
 }
 
 function view(row) {
-  ElMessageBox.alert(
-    `${row.content}<br/><br/>回复：${row.reply || '暂无'}<br/>处理时间：${dateTime(row.handleTime)}`,
-    `反馈 #${row.id}`,
-    { dangerouslyUseHTMLString: true }
-  )
+  fbRow.value = row || {}
+  fbDialog.value = true
 }
 
 async function handle(row) {
@@ -106,7 +132,13 @@ async function exportList() {
   saveBlob(res, '反馈列表.xlsx')
 }
 
-onMounted(load)
+onMounted(() => {
+  // 工作台待办「未处理反馈」带 ?status=0 跳过来
+  if (route.query.status != null && route.query.status !== '') {
+    query.status = Number(route.query.status)
+  }
+  load()
+})
 </script>
 
 <style scoped>

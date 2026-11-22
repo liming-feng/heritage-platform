@@ -763,6 +763,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 导出不分页但必须有上限，否则一次拉十几万条会把内存和数据库一起拖垮
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<Order>()
                 .eq(Order::getCraftsmanId, craftsmanId)
+                // 勾选导出：传了 ids 就只导这几单；craftsman_id 条件仍在，越权 id 查不出来
+                .in(query.getIds() != null && !query.getIds().isEmpty(), Order::getId, query.getIds())
                 .eq(query.getStatus() != null, Order::getStatus, query.getStatus())
                 .like(StringUtils.hasText(query.getOrderNo()), Order::getOrderNo, query.getOrderNo())
                 .eq(Boolean.TRUE.equals(query.getRefundOnly()), Order::getRefundStatus, 1)

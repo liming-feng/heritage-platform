@@ -7,6 +7,8 @@ target/
 heritage-server/target/
 dist/
 heritage-web/dist/
+dist_check/
+heritage-web/dist_check/
 *.jar
 *.war
 *.class
@@ -48,6 +50,8 @@ heritage-server/src/main/resources/application-local.yaml
 # ---- 其他 ----
 *.tmp
 *.bak
+*.zip
+uploads/tmp/
 
 # ---- WorkBuddy 内部记忆/会话数据 ----
 .workbuddy/

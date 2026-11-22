@@ -57,15 +57,55 @@
         <el-pagination v-model:current-page="query.pageNum" :page-size="query.pageSize" :total="Number(total)" layout="total, prev, pager, next" background @current-change="load" />
       </div>
     </div>
+
+    <!-- 预约名单：结构化表格，替代原来「1. 张三 138… 1人 [已通过]」的纯文本 -->
+    <DetailDialog
+      v-model="rosterDialog"
+      :title="`「${rosterRow.courseTitle || ''}」预约名单`"
+      :loading="rosterLoading"
+      width="720px"
+    >
+      <div class="d-sum">
+        共 <b>{{ rosterSummary.total }}</b> 条预约，已通过 <b>{{ rosterSummary.passed }}</b> 条、合计
+        <b>{{ rosterSummary.people }}</b> 个名额
+        <span v-if="rosterRow.courseStartTime"> · 开课 {{ dateTime(rosterRow.courseStartTime) }}</span>
+      </div>
+
+      <el-table :data="rosterList" size="small" max-height="420">
+        <el-table-column type="index" label="#" width="46" />
+        <el-table-column prop="contactName" label="学员" width="100" />
+        <el-table-column prop="contactPhone" label="联系电话" width="130" />
+        <el-table-column label="名额" width="70" align="center">
+          <template #default="{ row }">{{ row.quota }} 人</template>
+        </el-table-column>
+        <el-table-column label="状态" width="96">
+          <template #default="{ row }">
+            <el-tag :type="BOOKING_STATUS[row.status]?.type" size="small">{{ row.statusDesc }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="checkinCode" label="核销码" width="110">
+          <template #default="{ row }"><span v-if="row.checkinCode" class="code">{{ row.checkinCode }}</span><span v-else>—</span></template>
+        </el-table-column>
+        <el-table-column label="签到时间" width="130">
+          <template #default="{ row }">{{ row.checkinTime ? dateTime(row.checkinTime) : '—' }}</template>
+        </el-table-column>
+        <el-table-column prop="remark" label="备注" min-width="110" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.remark || '—' }}</template>
+        </el-table-column>
+      </el-table>
+
+      <el-empty v-if="!rosterLoading && !rosterList.length" :image-size="60" description="该课程还没有预约记录" />
+    </DetailDialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '@/utils/request'
 import { dateTime, BOOKING_STATUS } from '@/utils/format'
+import DetailDialog from '@/components/DetailDialog.vue'
 
 const route = useRoute()
 
@@ -83,6 +123,12 @@ const list = ref([])
 const myCourses = ref([])
 const total = ref(0)
 const loading = ref(false)
+
+/* 预约名单弹窗 */
+const rosterDialog = ref(false)
+const rosterLoading = ref(false)
+const rosterRow = ref({})
+const rosterList = ref([])
 const status = ref('null')
 const query = reactive({ pageNum: 1, pageSize: 10, courseId: undefined, keyword: '', onlyTimeout: false })
 
@@ -147,13 +193,30 @@ async function cancel(row) {
 }
 
 async function roster(row) {
-  const r = await http.get('/craftsman/booking/roster', { courseId: row.courseId })
-  const rows = (r || []).map((x, i) => `${i + 1}. ${x.contactName} ${x.contactPhone} ${x.quota}人 [${x.statusDesc}]`).join('\n')
-  ElMessageBox.alert(`<pre style="white-space:pre-wrap;font-family:inherit">${rows || '暂无学员'}</pre>`, `「${row.courseTitle}」预约名单`, { dangerouslyUseHTMLString: true })
+  rosterRow.value = row
+  rosterList.value = []
+  rosterDialog.value = true
+  rosterLoading.value = true
+  try {
+    rosterList.value = (await http.get('/craftsman/booking/roster', { courseId: row.courseId })) || []
+  } finally {
+    rosterLoading.value = false
+  }
 }
+
+/** 名单里各状态的人数，给弹窗顶部做一句摘要 */
+const rosterSummary = computed(() => {
+  const all = rosterList.value
+  const passed = all.filter((x) => [1, 4, 5].includes(x.status)).length
+  const people = all.filter((x) => [1, 4, 5].includes(x.status)).reduce((s, x) => s + (x.quota || 0), 0)
+  return { total: all.length, passed, people }
+})
 
 onMounted(async () => {
   if (route.query.courseId) query.courseId = Number(route.query.courseId)
+  // 工作台「待审核预约」带 ?tab=0 跳过来；值必须是 tabs 里的 value，非法值忽略
+  const tab = route.query.tab
+  if (tab && tabs.some((t) => String(t.value) === String(tab))) status.value = String(tab)
   http.get('/craftsman/course/list', { pageNum: 1, pageSize: 100 }).then((d) => (myCourses.value = d.records || [])).catch(() => {})
   reload()
 })
@@ -165,4 +228,5 @@ onMounted(async () => {
 .toolbar { display: flex; align-items: center; gap: 14px; padding: 14px 16px; margin-bottom: 14px; flex-wrap: wrap; }
 .table-card { padding: 6px 16px 16px; }
 .pager { display: flex; justify-content: flex-end; margin-top: 12px; }
+.code { font-family: var(--font-mono, monospace); letter-spacing: 0.5px; color: var(--h-primary); }
 </style>

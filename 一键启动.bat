@@ -15,6 +15,13 @@ set "JAVAI=%TOOLS%jdk17\bin\java.exe"
 set "MVN=%TOOLS%apache-maven-3.9.9\bin\mvn.cmd"
 set "SETTINGS=%TOOLS%maven-settings.xml"
 set "MYSQLD=C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqld.exe"
+set "MYSQLADMIN=C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqladmin.exe"
+set "MYSQLINI=%TOOLS%mysql8\my.ini"
+set "MYSQLLOG=%TOOLS%mysql8\error.log"
+rem DB credentials of the project instance (see doc 00). Password is passed through
+rem MYSQL_PWD so it does not show up in the process list / command line warning.
+set "MYSQL_USER=root"
+set "MYSQL_PWD=123456"
 set "JAR=%ROOT%heritage-server\target\heritage-server-1.0.0.jar"
 rem Memurai is installed at the D:\ root on this machine (NOT Program Files).
 rem Override with the MEMURAI_DIR environment variable if it moves.
@@ -32,23 +39,68 @@ echo [1/4] Checking MySQL (port 3307) ...
 call :port_up 3307
 if !PORT_UP! equ 1 (
     echo       MySQL already running, skip
-    goto step2
+    goto mysql_verify
 )
-if not exist "%MYSQLD%" (
-    echo       [ERROR] mysqld not found: "%MYSQLD%"
-    echo       Or start it manually with: tools\start-mysql8.bat
-    pause
-    exit /b 1
+
+rem Port 3306 belongs to a DIFFERENT instance (XAMPP MariaDB / the default MySQL
+rem service). It does NOT contain the "heritage" schema. Do not connect to it.
+call :port_up 3306
+if !PORT_UP! equ 1 (
+    echo       [NOTE] Something is listening on 3306 - that is ANOTHER database
+    echo              instance ^(MariaDB/XAMPP^), not this project. Use 3307.
 )
-echo       Starting portable MySQL instance ...
-start "Heritage-MySQL" /min "%MYSQLD%" --defaults-file="%TOOLS%mysql8\my.ini" --console
-call :wait_port 3307 15
+
+rem Method 1: Windows service, if it was ever registered (needs admin once).
+net start MySQL8Heritage >nul 2>&1
+call :port_up 3307
+
+rem Method 2: portable instance driven by tools\mysql8\my.ini
 if !PORT_UP! equ 0 (
-    echo       [ERROR] MySQL did not start within 30s, check MySQL window
+    if not exist "%MYSQLD%" (
+        echo       [ERROR] mysqld.exe not found:
+        echo               "%MYSQLD%"
+        echo               Fix the MYSQLD path at the top of this file, or install MySQL 8.
+        pause
+        exit /b 1
+    )
+    if not exist "%MYSQLINI%" (
+        echo       [ERROR] config file not found:
+        echo               "%MYSQLINI%"
+        pause
+        exit /b 1
+    )
+    echo       Starting portable MySQL 8 instance on port 3307 ...
+    rem NOTE: do NOT pass --console here. On Windows --console sends the error
+    rem stream to the console and SUPPRESSES log-error, so error.log would stay
+    rem empty and the diagnostics below would show stale content.
+    start "Heritage-MySQL" /min "%MYSQLD%" --defaults-file="%MYSQLINI%"
+    call :wait_port 3307 20
+)
+
+:mysql_verify
+if !PORT_UP! equ 0 (
+    echo       [ERROR] MySQL 3307 is NOT listening.
+    echo               The port never opened, so the instance failed to start.
+    echo               Error log: %MYSQLLOG%
+    if exist "%MYSQLLOG%" start "" notepad "%MYSQLLOG%"
+    echo               Common causes: data dir locked by another mysqld,
+    echo               corrupted ib_logfile, or 3307 taken by another program.
+    echo               Fallback: double-click tools\start-mysql8.bat and leave
+    echo                         its window open, then run this script again.
     pause
     exit /b 1
 )
-echo       MySQL started
+
+rem A listening port is not enough - make sure the server really answers logins.
+"%MYSQLADMIN%" -h127.0.0.1 -P3307 -u%MYSQL_USER% ping >nul 2>&1
+if errorlevel 1 (
+    echo       [ERROR] Port 3307 is open but the server refuses connections.
+    echo               Check the error log: %MYSQLLOG%
+    if exist "%MYSQLLOG%" start "" notepad "%MYSQLLOG%"
+    pause
+    exit /b 1
+)
+echo       MySQL started and answering  ^(127.0.0.1:3307, user=%MYSQL_USER%^)
 
 rem ---------- 2. Redis (6379, Memurai service) ----------
 :step2
@@ -115,6 +167,31 @@ if !PORT_UP! equ 0 (
     exit /b 1
 )
 echo       Backend started  (API docs: http://localhost:8080/api/doc.html)
+
+rem A listening port is NOT proof of a healthy app: a jar that lost its nested
+rem libraries still binds 8080, then throws NoClassDefFoundError on every request
+rem and the UI spins forever. Ask the app itself instead.
+set "PING_OK=0"
+for /l %%i in (1,1,10) do (
+    curl.exe -s -m 5 http://127.0.0.1:8080/api/portal/ping | findstr /c:"PONG" >nul 2>&1
+    if not errorlevel 1 (
+        set "PING_OK=1"
+        goto backend_ok
+    )
+    ping -n 3 127.0.0.1 >nul
+)
+:backend_ok
+if "!PING_OK!"=="0" (
+    echo       [ERROR] Port 8080 is open but /api/portal/ping does not answer.
+    echo               The app is broken, not just slow. Check the log:
+    echo               %ROOT%logs\backend-console.log
+    echo               If it says NoClassDefFoundError / ClassNotFoundException,
+    echo               the jar was overwritten while the backend was running -
+    echo               stop the backend, run "mvn package" again, restart.
+    pause
+    exit /b 1
+)
+echo       Backend healthy  ^(mysql + redis answered^)
 
 rem ---------- 4. Frontend (5173) ----------
 :step4

@@ -39,30 +39,29 @@
       </div>
     </div>
 
-    <!-- 优惠券 -->
-    <div class="block h-card" v-if="coupons.length">
-      <div class="h-section-title">
-        优惠券
-        <span class="best" v-if="bestDiscount > 0">已为你选最优券，省 ¥{{ bestDiscount }}</span>
-      </div>
-      <el-radio-group v-model="userCouponId" @change="rePreview">
-        <div class="coupon-list">
-          <el-radio
-            v-for="c in coupons"
-            :key="c.userCouponId"
-            :value="c.userCouponId"
-            :disabled="!c.usable"
-            border
-            class="coupon"
-          >
-            <span class="c-name">{{ c.name }}</span>
-            <span class="c-rule">{{ c.ruleText }}</span>
-            <span class="c-cut" v-if="c.usable">省 ¥{{ c.discountAmount }}，应付 ¥{{ c.payAmount }}</span>
-            <span v-if="!c.usable" class="c-block">{{ c.blockReason }}</span>
-          </el-radio>
-          <el-radio :value="null" border class="coupon">不使用优惠券</el-radio>
+    <!-- 优惠券：一个明确入口，点开独立的选券抽屉 -->
+    <div class="block h-card">
+      <div class="h-section-title">优惠券</div>
+      <div class="cp-entry" @click="couponDialog = true">
+        <div class="cp-entry-left">
+          <template v-if="selectedCoupon">
+            <el-tag type="danger" effect="plain" size="small">{{ selectedCoupon.name }}</el-tag>
+            <span class="cp-entry-cut">-¥{{ selectedCoupon.discountAmount }}</span>
+            <span class="cp-entry-sub">{{ selectedCoupon.ruleText }}</span>
+          </template>
+          <template v-else-if="usableCount">
+            <span class="cp-entry-hl">{{ usableCount }} 张可用</span>
+            <span v-if="bestDiscount > 0" class="cp-entry-sub">最高可省 ¥{{ bestDiscount }}</span>
+          </template>
+          <span v-else class="cp-entry-sub">本单暂无可用优惠券</span>
         </div>
-      </el-radio-group>
+        <div class="cp-entry-right">
+          <span class="cp-entry-link">
+            {{ selectedCoupon ? '更改' : usableCount ? '选择优惠券' : '去领券' }}
+          </span>
+          <el-icon><ArrowRight /></el-icon>
+        </div>
+      </div>
     </div>
 
     <!-- 备注 + 提交 -->
@@ -82,6 +81,14 @@
       </div>
     </div>
     <div class="warn" v-if="preview.canSubmit === false">{{ preview.message }}</div>
+
+    <!-- 选券抽屉 -->
+    <CouponPicker
+      v-model="couponDialog"
+      :coupons="coupons"
+      :selected-id="userCouponId"
+      @confirm="pickCoupon"
+    />
 
     <!-- 新增地址弹窗 -->
     <el-dialog v-model="addrDialog" title="新增收货地址" width="460px">
@@ -108,6 +115,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { http } from '@/utils/request'
 import { img, onImgErr } from '@/utils/format'
+import CouponPicker from '@/components/CouponPicker.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -122,6 +130,23 @@ const remark = ref('')
 const submitting = ref(false)
 const addrDialog = ref(false)
 const addrForm = reactive({ receiver: '', phone: '', province: '', city: '', district: '', detail: '', isDefault: 0 })
+
+/* ---- 选券 ---- */
+const couponDialog = ref(false)
+/** 用户是否手动动过券：动过之后重新预览时不再自动回填「最优券」，否则「不使用」会被悄悄改回来 */
+const couponTouched = ref(false)
+
+const usableCount = computed(() => coupons.value.filter((c) => c.usable).length)
+const selectedCoupon = computed(
+  () => coupons.value.find((c) => String(c.userCouponId) === String(userCouponId.value)) || null
+)
+
+/** 抽屉里点确定：null 表示明确选择「不使用优惠券」，与"没选过"要区分开 */
+function pickCoupon(id) {
+  couponTouched.value = true
+  userCouponId.value = id ?? null
+  loadPreview()
+}
 
 /** 直接购买（商品页立即购买）或购物车结算 */
 const direct = computed(() =>
@@ -163,8 +188,8 @@ async function loadPreview() {
   })
   coupons.value = av.list || []
   bestDiscount.value = Number(av.bestDiscountAmount) || 0
-  // 首次进入自动选中后端给出的最优券
-  if (userCouponId.value === null && av.bestUserCouponId) {
+  // 首次进入自动选中后端给出的最优券；用户手动选过（含选了「不使用」）就不再干预
+  if (!couponTouched.value && userCouponId.value === null && av.bestUserCouponId) {
     userCouponId.value = av.bestUserCouponId
     preview.value = await http.post('/portal/order/preview', {
       addressId: addressId.value,
@@ -177,9 +202,7 @@ async function loadPreview() {
 
 function rePreview() {
   loadPreview()
-}
-
-async function submitOrder() {
+}async function submitOrder() {
   if (!addressId.value) return ElMessage.warning('请选择收货地址')
   submitting.value = true
   try {
@@ -238,13 +261,18 @@ onMounted(async () => {
   gap: 6px; color: var(--h-text-second); min-height: 76px;
   border-style: dashed; background: var(--h-paper);
 }
-.coupon-list { display: flex; flex-wrap: wrap; gap: 10px; }
-.coupon { height: auto !important; padding: 10px 14px; margin-right: 0 !important; }
-.coupon :deep(.el-radio__label) { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
-.c-name { font-weight: 600; }
-.c-rule { color: var(--h-text-second); font-size: 12px; }
-.c-cut { color: var(--h-primary); font-size: 12px; }
-.c-block { color: #d48806; font-size: 12px; }
+.cp-entry {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--h-border); border-radius: 10px;
+  cursor: pointer; transition: border-color 0.18s, background 0.18s;
+}
+.cp-entry:hover { border-color: var(--h-primary); background: #fdf7f6; }
+.cp-entry-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cp-entry-cut { color: var(--h-primary); font-weight: 600; font-size: 14px; }
+.cp-entry-hl { color: var(--h-primary); font-weight: 600; font-size: 13px; }
+.cp-entry-sub { color: var(--h-text-second); font-size: 12px; }
+.cp-entry-right { display: flex; align-items: center; gap: 4px; color: var(--h-text-second); font-size: 13px; flex: none; }
+.cp-entry:hover .cp-entry-right { color: var(--h-primary); }
 .row { display: grid; grid-template-columns: 70px 1fr 150px 110px; gap: 14px; align-items: center; padding: 10px 0; }
 .row img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; }
 .g-name { font-weight: 600; }

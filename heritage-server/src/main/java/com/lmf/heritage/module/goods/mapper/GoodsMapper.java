@@ -163,4 +163,16 @@ public interface GoodsMapper extends BaseMapper<Goods> {
                          @Param("auditStatus") int auditStatus,
                          @Param("status") int status,
                          @Param("rejectReason") String rejectReason);
+
+    /**
+     * 按天统计某个目标（商品/课程）的浏览记录数，数据源 {@code browse_history}
+     *
+     * <p>只返回「有记录的天」，缺失的天由 Service 补 0 —— 补零放在 Java 里做，
+     * 比在 SQL 里造日历表简单，也避免不同库对递归 CTE 的写法差异。</p>
+     *
+     * @return 每行 {@code {d=java.sql.Date, c=Long}}
+     */
+    List<java.util.Map<String, Object>> countViewsByDay(@Param("targetType") int targetType,
+                                                        @Param("targetId") Long targetId,
+                                                        @Param("from") java.time.LocalDateTime from);
 }

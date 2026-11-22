@@ -80,6 +80,10 @@
             AND b.status = 0
             AND b.create_time &lt;= DATE_SUB(NOW(), INTERVAL #{timeoutHours} HOUR)
         </if>
+        <!-- 签到台：课程已结束的预约永远核销不了（窗口截止=课程结束），列表里直接排除 -->
+        <if test="q.checkinable != null and q.checkinable">
+            AND c.end_time &gt;= NOW()
+        </if>
         ORDER BY b.id DESC
     </select>
 

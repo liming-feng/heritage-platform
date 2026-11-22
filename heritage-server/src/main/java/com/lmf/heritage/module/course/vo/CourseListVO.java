@@ -82,6 +82,18 @@ public class CourseListVO implements Serializable {
     @Schema(description = "状态名称")
     private String statusDesc;
 
+    /**
+     * 平台审核状态。
+     *
+     * <p>只有匠人端「我的课程」的 SQL 会查这一列（前台列表固定只出 audit_status=1 的课），
+     * 所以前台的列表项里这两个字段是 null，序列化时保留但为空即可。</p>
+     */
+    @Schema(description = "审核状态 0待审核 1已通过 2已驳回")
+    private Integer auditStatus;
+
+    @Schema(description = "审核状态名称")
+    private String auditStatusDesc;
+
     @Schema(description = "授课匠人 id")
     private Long craftsmanId;
 

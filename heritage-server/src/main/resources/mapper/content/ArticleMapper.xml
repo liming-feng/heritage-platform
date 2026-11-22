@@ -101,6 +101,13 @@
         FROM article a
         LEFT JOIN category c ON c.id = a.category_id
         WHERE a.deleted = 0
+        <!-- 勾选导出：只在传了 ids 时生效，与其它筛选条件是 AND 关系 -->
+        <if test="q.ids != null and q.ids.size() > 0">
+            AND a.id IN
+            <foreach collection="q.ids" item="aid" open="(" separator="," close=")">
+                #{aid}
+            </foreach>
+        </if>
         <if test="q.categoryId != null">
             AND a.category_id = #{q.categoryId}
         </if>

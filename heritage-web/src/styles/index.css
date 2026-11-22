@@ -179,9 +179,15 @@ img {
   padding: 20px;
 }
 
+/*
+ * 页头：标题在左，操作在右。
+ * 之前只写了 display:flex，没有 gap、也没有把按钮推到右边，
+ * 于是「我的商品 + 发布新品」这类页面的按钮直接粘在标题后面。
+ */
 .h-page-header {
   display: flex;
   align-items: center;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
@@ -191,8 +197,97 @@ img {
   font-weight: 600;
 }
 
+/* 紧跟标题的第一个按钮/按钮组推到最右；后续按钮按 gap 依次排列，不会被拆散 */
+.h-page-header > h2 + .el-button,
+.h-page-header > h2 + .head-right {
+  margin-left: auto;
+}
+
+/* 多个操作按钮的容器：靠右对齐，内部统一 10px 间距 */
+.h-page-header .head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 已经有 gap 了，副标题不再额外加左外边距，避免双重留白 */
 .h-page-header .sub {
-  margin-left: 12px;
+  margin-left: 0;
   color: var(--h-text-second);
   font-size: 13px;
 }
+
+/* =====================================================================
+ *  详情弹窗内部排版（DetailDialog + el-descriptions 的组合）
+ *  这些类用在插槽内容里，必须放全局：scoped 样式作用不到父组件传入的插槽。
+ * ===================================================================== */
+
+/* 分段小标题：左侧一道竖线，替代「一堆 <br/>」造成的层次缺失 */
+.d-sec {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 18px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--h-ink);
+}
+.d-sec:first-child { margin-top: 0; }
+.d-sec::before {
+  content: '';
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--h-primary);
+}
+.d-sec .d-sec-extra { margin-left: auto; font-weight: 400; font-size: 12px; color: var(--h-text-second); }
+
+/* 顶部一句话摘要（如「共 4 人报名，合计 5 个名额」） */
+.d-sum {
+  font-size: 12px;
+  color: var(--h-text-second);
+  margin-bottom: 10px;
+}
+.d-sum b { color: var(--h-primary); font-size: 15px; margin: 0 2px; }
+
+/* 长文本块：保留换行，限制高度可滚动，避免撑爆弹窗 */
+.d-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--h-ink);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.d-text.muted { color: var(--h-text-second); }
+
+/* 图片墙 */
+.d-imgs { display: flex; flex-wrap: wrap; gap: 8px; }
+.d-imgs img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--h-border);
+  background: var(--h-paper-dark);
+}
+.d-imgs img.thumb-sm { width: 72px; height: 72px; }
+
+/* 弹窗内的标签列表（作品 / 课程预览） */
+.d-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* 弹窗内的迷你指标宫格（预约状态分布等） */
+.d-stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.d-stat {
+  padding: 8px 6px;
+  text-align: center;
+  border-radius: 8px;
+  background: var(--h-paper-dark);
+}
+.d-stat b { display: block; font-size: 17px; line-height: 1.2; color: var(--h-ink); }
+.d-stat span { font-size: 11px; color: var(--h-text-second); }
+.d-stat.hl b { color: var(--h-primary); }
+
+

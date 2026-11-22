@@ -21,6 +21,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
@@ -122,6 +124,19 @@ public class AdminCourseServiceImpl implements AdminCourseService {
         BusinessException.throwIf(affected != ids.size(), ErrorCode.COURSE_AUDIT_STATUS_ERROR,
                 "实际生效 " + affected + " 门，与提交的 " + ids.size() + " 门不一致，已回滚");
         log.info("[课程审核] {} 门 {}", affected, pass ? "通过" : "驳回：" + reason);
+
+        if (pass) {
+            // 审核通过后课程才对外可见。若开课时间已经过去（审批积压、补录老课），
+            // 状态必须立刻按时间落位，否则前台显示「未开始」，甚至还能约一门早就结束的课。
+            LocalDateTime now = LocalDateTime.now();
+            for (Course c : courses) {
+                int code = CourseStatusEnum.at(c.getStartTime(), c.getEndTime(), now).getCode();
+                if (!Integer.valueOf(code).equals(c.getStatus())) {
+                    courseMapper.pushStatus(c.getId(), code);
+                    log.info("[课程审核] 课程 {}「{}」已过开课时间，状态同步为 {}", c.getId(), c.getTitle(), code);
+                }
+            }
+        }
         return affected;
     }
 

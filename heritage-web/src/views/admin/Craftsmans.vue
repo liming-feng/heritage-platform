@@ -51,6 +51,44 @@
         <el-pagination v-model:current-page="pageNum" :page-size="pageSize" :total="Number(total)" layout="total, prev, pager, next" background @current-change="load" />
       </div>
     </div>
+
+    <DetailDialog v-model="cmDialog" :title="`匠人资质 · ${cmInfo.realName || ''}`" :loading="cmLoading" width="760px">
+      <el-descriptions :column="2" size="small" border>
+        <el-descriptions-item label="姓名">{{ cmInfo.realName || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="技艺门类">{{ cmInfo.craftType || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="联系电话">{{ cmInfo.phone || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="身份证号">{{ cmInfo.idCardNo || '未填写' }}</el-descriptions-item>
+        <el-descriptions-item label="师承" :span="2">{{ cmInfo.inheritance || '—' }}</el-descriptions-item>
+      </el-descriptions>
+
+      <div class="d-sec">个人简介</div>
+      <div class="d-text">{{ cmInfo.intro || '—' }}</div>
+
+      <div class="d-sec">从艺履历</div>
+      <div class="d-text">{{ cmInfo.resume || '—' }}</div>
+
+      <div class="d-sec">证书材料<span class="d-sec-extra">共 {{ (cmInfo.certImages || []).length }} 张</span></div>
+      <div v-if="(cmInfo.certImages || []).length" class="d-imgs">
+        <img v-for="(u, i) in cmInfo.certImages" :key="i" :src="img(u)" alt="" @error="onImgErr" />
+      </div>
+      <div v-else class="d-sum">未上传证书图片</div>
+
+      <div class="d-sec">已发布作品</div>
+      <div v-if="(cmInfo.goodsPreview || []).length" class="d-chips">
+        <el-tag v-for="(p, i) in cmInfo.goodsPreview" :key="i" size="small" effect="plain" type="info">
+          {{ p.name }}<span v-if="p.statusText"> · {{ p.statusText }}</span>
+        </el-tag>
+      </div>
+      <div v-else class="d-sum">暂无</div>
+
+      <div class="d-sec">已发布课程</div>
+      <div v-if="(cmInfo.coursePreview || []).length" class="d-chips">
+        <el-tag v-for="(p, i) in cmInfo.coursePreview" :key="i" size="small" effect="plain" type="info">
+          {{ p.name }}<span v-if="p.statusText"> · {{ p.statusText }}</span>
+        </el-tag>
+      </div>
+      <div v-else class="d-sum">暂无</div>
+    </DetailDialog>
   </div>
 </template>
 
@@ -59,6 +97,10 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http, saveBlob } from '@/utils/request'
 import { img, onImgErr, dateTime, AUDIT_STATUS } from '@/utils/format'
+import DetailDialog from '@/components/DetailDialog.vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
 
 const auditStatus = ref('null')
 const list = ref([])
@@ -66,6 +108,11 @@ const total = ref(0)
 const pageNum = ref(1)
 const pageSize = 10
 const loading = ref(false)
+
+/* 资质材料弹窗 */
+const cmDialog = ref(false)
+const cmLoading = ref(false)
+const cmInfo = ref({})
 
 async function load() {
   loading.value = true
@@ -88,17 +135,14 @@ function reload() {
 }
 
 async function detail(row) {
-  const d = await http.get(`/admin/craftsman/${row.id}/audit-detail`)
-  const certs = (d.certImages || []).map((u) => `<img src="${img(u)}" style="width:120px;height:90px;object-fit:cover;border-radius:6px;margin:4px" />`).join('')
-  const preview = (list) => (list || []).map((p) => `${p.name}（${p.statusText}）`).join('、') || '无'
-  ElMessageBox.alert(
-    `姓名：${d.realName}（${d.craftType}）<br/>身份证号：${d.idCardNo || '未填写'}<br/>联系电话：${d.phone}<br/>` +
-    `师承：${d.inheritance || '—'}<br/>简介：${d.intro || '—'}<br/>履历：${d.resume || '—'}<br/>` +
-    `证书图片：${certs || '未上传'}<br/>` +
-    `已发布作品：${preview(d.goodsPreview)}<br/>已发布课程：${preview(d.coursePreview)}`,
-    `匠人资质 · ${d.realName}`,
-    { dangerouslyUseHTMLString: true, customStyle: { maxWidth: '620px' } }
-  )
+  cmInfo.value = {}
+  cmDialog.value = true
+  cmLoading.value = true
+  try {
+    cmInfo.value = await http.get(`/admin/craftsman/${row.id}/audit-detail`)
+  } finally {
+    cmLoading.value = false
+  }
 }
 
 async function audit(row, pass) {
@@ -118,7 +162,14 @@ async function exportCrafts() {
   saveBlob(res, '匠人列表.xlsx')
 }
 
-onMounted(load)
+onMounted(() => {
+  // 工作台待办「待审核匠人」带 ?auditStatus=0 跳过来（本页筛选是字符串枚举）
+  const q = route.query.auditStatus
+  if (q != null && q !== '' && ['0', '1', '2'].includes(String(q))) {
+    auditStatus.value = String(q)
+  }
+  load()
+})
 </script>
 
 <style scoped>

@@ -17,8 +17,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="封面图" prop="cover">
-          <el-input v-model="form.cover" placeholder="图片地址，如 /api/uploads/demo/goods-1.svg" @blur="preview = form.cover" />
-          <img v-if="preview" :src="img(preview)" class="cover-preview" @error="onImgErr" />
+          <ImageUpload v-model="form.cover" :width="180" :height="120" tip="建议 3:2 横图，jpg / png / webp / gif，不超过 5MB" />
         </el-form-item>
         <el-form-item label="售价（元）" prop="price">
           <el-input-number v-model="form.price" :min="0.01" :precision="2" :step="10" />
@@ -50,7 +49,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { http } from '@/utils/request'
-import { img, onImgErr } from '@/utils/format'
+import ImageUpload from '@/components/ImageUpload.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,7 +57,6 @@ const router = useRouter()
 const formRef = ref()
 const loading = ref(false)
 const saving = ref(false)
-const preview = ref('')
 const categories = ref([])
 
 const form = reactive({
@@ -69,7 +67,7 @@ const form = reactive({
 const rules = {
   name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
   categoryId: [{ required: true, message: '请选择分类', trigger: 'change' }],
-  cover: [{ required: true, message: '请填写封面图地址', trigger: 'blur' }],
+  cover: [{ required: true, message: '请上传封面图', trigger: 'change' }],
   price: [{ required: true, message: '请填写售价', trigger: 'change' }],
   stock: [{ required: true, message: '请填写库存', trigger: 'change' }]
 }
@@ -81,7 +79,6 @@ async function load() {
   try {
     const d = await http.get(`/craftsman/goods/${id}`)
     Object.keys(form).forEach((k) => (form[k] = d[k] ?? form[k]))
-    preview.value = d.cover || ''
   } finally {
     loading.value = false
   }
@@ -107,6 +104,5 @@ onMounted(async () => {
 
 <style scoped>
 .form-card { padding: 26px 30px; }
-.cover-preview { width: 160px; height: 110px; object-fit: cover; border-radius: 8px; margin-top: 8px; border: 1px solid var(--h-border); }
 .hint { margin-left: 10px; color: var(--h-text-second); font-size: 12px; }
 </style>

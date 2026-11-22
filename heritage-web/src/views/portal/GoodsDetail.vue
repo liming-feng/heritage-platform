@@ -145,9 +145,27 @@ async function load() {
     const firstInStock = (goods.value.specs || []).find((s) => s.stock > 0)
     if (firstInStock) specId.value = firstInStock.id
     await refreshFav()
+    reportHistory()
   } finally {
     loading.value = false
   }
+}
+
+/**
+ * 上报浏览历史（browse_history）
+ *
+ * 这一行不是可选装饰：用户端「我的浏览」列表、以及匠人端「浏览量趋势」的数据源
+ * 都是 browse_history。此前前端从未调用该接口，导致该表只有初始化时的演示数据，
+ * 匠人的趋势图永远是一条 0。
+ *
+ * 只对登录用户上报（接口要求登录）；接口内部按 (user,type,target) 去重，
+ * 重复浏览只刷新时间，不会撑大表。
+ */
+function reportHistory() {
+  if (!user.isLogin) return
+  http
+    .post('/portal/history/upload', { items: [{ targetType: 1, targetId: Number(route.params.id) }] })
+    .catch(() => { /* 上报失败不影响浏览 */ })
 }
 
 async function refreshFav() {

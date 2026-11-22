@@ -24,7 +24,7 @@
         <div class="h-section-title">收货信息</div>
         <div class="kv"><span>收货人</span>{{ order.receiver }}</div>
         <div class="kv"><span>电话</span>{{ order.receiverPhone }}</div>
-        <div class="kv"><span>地址</span>{{ order.addressSnapshot }}</div>
+        <div class="kv"><span>地址</span>{{ addressText(order.addressSnapshot) }}</div>
         <div class="kv" v-if="order.remark"><span>买家留言</span>{{ order.remark }}</div>
       </div>
       <div class="h-card block">
@@ -119,7 +119,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { http } from '@/utils/request'
-import { img, onImgErr, dateTime } from '@/utils/format'
+import { img, onImgErr, dateTime, addressText } from '@/utils/format'
 
 const route = useRoute()
 const order = ref({})

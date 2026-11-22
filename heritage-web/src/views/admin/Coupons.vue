@@ -29,8 +29,7 @@
           </el-table-column>
           <el-table-column label="领取/使用率" width="110">
             <template #default="{ row }">
-              {{ row.receiveRate != null ? Math.round(row.receiveRate * 100) + '%' : '—' }} /
-              {{ row.useRate != null ? Math.round(row.useRate * 100) + '%' : '—' }}
+              {{ pct(row.receiveRate) }} / {{ pct(row.useRate) }}
             </template>
           </el-table-column>
           <el-table-column prop="effectiveDesc" label="有效期" min-width="180" show-overflow-tooltip />
@@ -118,6 +117,26 @@
         <el-button type="primary" @click="save">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 使用统计：三个指标 + 按券类型的拆分表 -->
+    <DetailDialog v-model="statDialog" :title="`「${statRow.name || ''}」使用统计`" width="620px">
+      <div class="d-stats" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+        <div class="d-stat"><b>{{ statData.receivedTotal ?? 0 }}</b><span>已领取</span></div>
+        <div class="d-stat"><b>{{ statData.usedTotal ?? 0 }}</b><span>已使用</span></div>
+        <div class="d-stat hl"><b>{{ pct(statData.useRate, '0%') }}</b><span>核销率</span></div>
+      </div>
+
+      <div class="d-sec">按类型拆分</div>
+      <el-table :data="statData.typeStats || []" size="small">
+        <el-table-column prop="typeDesc" label="类型" min-width="130" />
+        <el-table-column prop="receivedCount" label="已领" width="90" align="center" />
+        <el-table-column prop="usedCount" label="已用" width="90" align="center" />
+        <el-table-column label="使用率" width="110" align="right">
+          <template #default="{ row }">{{ pct(row.useRate, '0%') }}</template>
+        </el-table-column>
+      </el-table>
+      <el-empty v-if="!(statData.typeStats || []).length" :image-size="56" description="暂无领取记录" />
+    </DetailDialog>
   </div>
 </template>
 
@@ -125,7 +144,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { http, saveBlob } from '@/utils/request'
-import { dateTime } from '@/utils/format'
+import { dateTime, pct } from '@/utils/format'
+import DetailDialog from '@/components/DetailDialog.vue'
 
 const tab = ref('list')
 const list = ref([])
@@ -137,6 +157,12 @@ const rPageNum = ref(1)
 const pageSize = 10
 const loading = ref(false)
 const dialog = ref(false)
+
+/* 使用统计弹窗 */
+const statDialog = ref(false)
+const statLoading = ref(false)
+const statRow = ref({})
+const statData = ref({})
 const range = ref([])
 const form = reactive({ id: null, name: '', type: 1, amount: null, discount: null, threshold: 0, scope: 1, totalCount: 0, perLimit: 1, startTime: '', endTime: '', description: '', status: 1 })
 
@@ -199,9 +225,15 @@ async function toggle(row) {
 }
 
 async function stat(row) {
-  const s = await http.get('/admin/coupon/stat', { couponId: row.id })
-  const lines = (s.typeStats || []).map((t) => `${t.typeDesc}：已领 ${t.receivedCount}，已用 ${t.usedCount}，使用率 ${t.useRate != null ? Math.round(t.useRate * 100) : 0}%`).join('<br/>')
-  ElMessageBox.alert(`领取 ${s.receivedTotal}，使用 ${s.usedTotal}，总使用率 ${s.useRate != null ? Math.round(s.useRate * 100) : 0}%<br/>${lines}`, `「${row.name}」使用统计`, { dangerouslyUseHTMLString: true })
+  statRow.value = row || {}
+  statData.value = {}
+  statDialog.value = true
+  statLoading.value = true
+  try {
+    statData.value = await http.get('/admin/coupon/stat', { couponId: row.id })
+  } finally {
+    statLoading.value = false
+  }
 }
 
 async function exportCoupons() {
